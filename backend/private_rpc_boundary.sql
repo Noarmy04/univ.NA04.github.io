@@ -1,0 +1,11 @@
+alter function public.na04_api(text,jsonb) set schema na04_private;
+revoke all on function na04_private.na04_api(text,jsonb) from public;
+grant usage on schema na04_private to anon,authenticated;
+grant execute on function na04_private.na04_api(text,jsonb) to anon,authenticated;
+create function public.na04_api(action text,args jsonb default '{}') returns jsonb language sql security invoker set search_path='' as $$ select na04_private.na04_api(action,args) $$;
+revoke all on function public.na04_api(text,jsonb) from public;
+grant execute on function public.na04_api(text,jsonb) to anon,authenticated;
+create policy deny_direct_access on na04_private.members for all to anon,authenticated using(false) with check(false);
+create policy deny_direct_access on na04_private.reviews for all to anon,authenticated using(false) with check(false);
+create policy deny_direct_access on na04_private.messages for all to anon,authenticated using(false) with check(false);
+create policy deny_direct_access on na04_private.reports for all to anon,authenticated using(false) with check(false);

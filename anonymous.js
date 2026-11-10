@@ -1,0 +1,45 @@
+'use strict';
+// Activated only after the hosted backend is configured and verified.
+if(window.NA04_BACKEND?.url&&window.NA04_BACKEND?.publishableKey){
+  const config=window.NA04_BACKEND,tokenKey='na04-anonymous-session';let session=null;
+  try{session=JSON.parse(localStorage.getItem(tokenKey)||'null');}catch{}
+  async function identity(){
+    if(session?.expires_at>Date.now()+60000)return session.access_token;
+    const refresh=session?.refresh_token;
+    const response=await fetch(config.url+(refresh?'/auth/v1/token?grant_type=refresh_token':'/auth/v1/signup'),{method:'POST',headers:{apikey:config.publishableKey,'Content-Type':'application/json'},body:JSON.stringify(refresh?{refresh_token:refresh}:{})});
+    const result=await response.json();if(!response.ok||!result.access_token)throw Error('익명 연결에 실패했어요. 잠시 후 다시 시도해주세요.');
+    session={access_token:result.access_token,refresh_token:result.refresh_token,expires_at:Date.now()+result.expires_in*1000};localStorage.setItem(tokenKey,JSON.stringify(session));return session.access_token;
+  }
+  async function api(action,args={},write=false){const token=write?await identity():null;const response=await fetch(config.url+'/rest/v1/rpc/na04_api',{method:'POST',headers:{apikey:config.publishableKey,...(token?{Authorization:'Bearer '+token}:{}),'Content-Type':'application/json'},body:JSON.stringify({action,args})});const result=await response.json();if(!response.ok||result?.error)throw Error(result?.error||'서버 연결에 실패했어요. 다시 시도해주세요.');return result;}
+  const chat=el('dialog');chat.className='wide-dialog';document.body.append(chat);let currentThread=null,accepted=localStorage.getItem('na04-chat-notice-v1')==='accepted';
+  const warning='비속어 또는 문제의 소지가 있는 표현을 사용하면 이용이 제한될 수 있습니다. 서로 존중하는 언어로 대화해주세요.';
+  chat.addEventListener('close',()=>{currentThread=null;clearInterval(chat.refreshTimer);});
+  async function openChat(id){clearInterval(chat.refreshTimer);currentThread=id;headingDialog(chat,'익명 수업 이야기','이 평가에 대한 경험과 의견을 나눠보세요.');const warningBox=el('div','chat-warning');warningBox.append(el('strong','','대화 참여 안내'),el('p','',warning));const agree=button('안내를 확인하고 참여하기',async()=>{try{await api('accept',{},true);accepted=true;localStorage.setItem('na04-chat-notice-v1','accepted');warningBox.hidden=true;composer.hidden=false;}catch(e){notify(e.message);}});warningBox.append(agree);warningBox.hidden=accepted;chat.append(warningBox);const list=el('div','chat-list');chat.append(list);const composer=el('form');composer.hidden=!accepted;composer.innerHTML='<label>대화 내용<textarea name="message" maxlength="1000" rows="3" required placeholder="수업과 관련된 이야기를 남겨주세요."></textarea></label><button class="primary" type="submit">익명으로 보내기</button>';chat.append(composer);const status=el('p','form-help');chat.append(status);
+    async function refresh(){try{const records=await api('messages',{reviewId:id});if(currentThread!==id)return;list.replaceChildren();if(!records.length)list.append(el('p','','아직 대화가 없습니다. 첫 이야기를 남겨보세요.'));for(const m of records){const card=el('article','history-card');card.append(el('strong','',m.alias),el('p','',m.body),el('small','',new Date(m.createdAt).toLocaleString('ko-KR')),button('신고',async()=>{try{await api('report',{messageId:m.id},true);notify('신고가 접수됐어요.');}catch(e){notify(e.message);}}));list.append(card);}status.textContent='최근 대화 최대 100개 · 10초마다 자동으로 새 글을 확인합니다.';}catch(e){status.textContent=e.message;}}
+    composer.onsubmit=async e=>{e.preventDefault();const body=composer.elements.message.value.trim();if(!body)return;const submit=composer.querySelector('button');submit.disabled=true;try{if(accepted)await api('accept',{},true);await api('message',{reviewId:id,body},true);composer.reset();await refresh();}catch(error){notify(error.message);}finally{submit.disabled=false;}};
+    chat.append(button('대화 새로고침',refresh));chat.showModal();await refresh();chat.refreshTimer=setInterval(()=>{if(chat.open&&!document.hidden)refresh();},10000);
+  }
+  async function publishReview(r){const course=data.courses.find(c=>c.id===r.courseId);if(!course)return;const payload={schema:'univ-na04/v2',kind:'review',course:publicCourse(course),review:{date:r.date,session:r.session||'기본 세션',comment:r.comment||'',overall:r.overall,understanding:r.understanding,delivery:r.delivery,structure:r.structure}};if(!ShareModel.valid(payload))throw Error('평가 내용을 확인해주세요.');const response=await api('review',{clientId:r.publicClientId,payload},true);r.publicId=response.id;r.publicPending=false;save({...data,reviews:[...data.reviews]});render();await loadShared();}
+  const previousSubmit=$('#review-form').onsubmit;
+  $('#review-form').onsubmit=async e=>{const before=data;const previous=data.reviews.find(r=>r.courseId===editing?.id&&r.date===editing?.date&&(r.session||'기본 세션')===editing?.session);previousSubmit(e);if(data===before)return;const r=data.reviews.at(-1);r.publicClientId=previous?.publicClientId||crypto.randomUUID();r.publicPending=true;save({...data,reviews:[...data.reviews]});try{await publishReview(r);notify('평가가 익명으로 공개됐어요.');}catch(error){render();notify('개인 저장 완료 · 공개 게시 대기: '+error.message);}};
+  const originalCard=reviewCard;reviewCard=function(r,c,entry=null){const card=originalCard(r,c,entry);const actions=card.querySelector('.actions');actions.querySelectorAll('button').forEach(b=>{if(b.textContent.includes('공유'))b.remove();});if(r.publicId)actions.append(button('익명 대화',()=>openChat(r.publicId)));if(r.publicPending)actions.append(button('공개 게시 재시도',async()=>{try{await publishReview(r);notify('공개됐어요.');}catch(e){notify(e.message);}}));return card;};
+  const originalSharedCard=sharedCard;sharedCard=function(entry){const card=originalSharedCard(entry);card.querySelectorAll('a').forEach(a=>a.remove());const byline=card.querySelector('p');if(byline)byline.textContent=`${entry.payload.course.school} · ${entry.payload.course.professor} 교수님 · 익명 평가`;card.querySelector('.actions').append(button('익명 대화',()=>openChat(entry.id)));return card;};
+  loadShared=async function(){sharedState.busy=true;sharedState.error='';renderShared();try{const records=await api('feed');sharedState.records=records.filter(x=>ShareModel.valid(x.payload)).map(x=>({...x,author:'익명',number:x.id}));sharedState.hasMore=false;}catch(e){sharedState.error=e.message;}finally{sharedState.busy=false;renderShared();}};
+  $('#refresh-shared').onclick=loadShared;$('#more-shared').hidden=true;
+  $('#review-form .form-help:last-of-type').textContent='저장한 평가는 익명으로 모두에게 자동 공개됩니다. 개인정보를 입력하지 마세요.';
+  $('#review-form button[type=submit]').textContent='평가 저장 및 자동 공개';
+  $('#shared-feed .section-heading p').textContent='학생들이 남긴 익명 평가입니다. 각 평가에서 대화에 참여할 수 있어요.';
+  offerShare=()=>notify('새 평가는 저장하면 익명으로 자동 공개됩니다.');
+  const legacyDetail=openDetail;openDetail=function(id){legacyDetail(id);detail.querySelectorAll('button').forEach(b=>{if(b.textContent.includes('과목 정보 공유'))b.remove();});};
+  document.querySelector('.storage-badge').textContent='● 익명 자동 공개';
+  const guide=$('#guide-page .guide');guide.replaceChildren();
+  for(const [title,text] of [
+    ['익명 평가와 대화','새로 작성하거나 수정해 저장한 평가는 모두에게 자동 공개됩니다. 개인정보는 적지 마세요. 기존 개인 기록은 자동으로 이전하지 않습니다.'],
+    ['대화 참여 안내',warning+' 첫 참여 시 안내를 확인한 후 글을 보낼 수 있습니다.'],
+    ['신고와 이용 제한','메시지의 신고 버튼으로 관리자에게 알릴 수 있습니다. 기본 금칙 표현은 전송이 거부되며 반복 사용 시 해당 익명 사용자의 글쓰기가 제한됩니다. 모든 유해 표현을 자동 판별하는 기능은 아닙니다.'],
+    ['익명 기록 보관','대화창마다 익명 별명이 표시됩니다. 브라우저 데이터를 삭제하면 이전 익명 사용자로 접근할 수 없습니다. 다른 기기와 개인 시간표는 자동 동기화되지 않습니다.'],
+    ['대화 확인','오늘의 강의 아래 공개 평가에서 익명 대화를 선택하세요. 열린 대화는 10초마다 새 글을 확인하며 직접 새로고침할 수도 있습니다.'],
+    ['수업과 시험 정보','수업 날짜와 세션을 구분해 기록하세요. 수업 방식과 시험 정보는 학생 작성 내용이며 공식 안내를 함께 확인해주세요.']]){guide.append(el('h3','',title),el('p','',text));}
+  const baseRenderShared=renderShared;renderShared=function(){baseRenderShared();const emptyText=$('#shared-list .empty p');if(emptyText&&!sharedState.busy&&!sharedState.error){emptyText.textContent=sharedState.records.length?'다른 검색어로 다시 찾아보세요.':'새 평가를 저장하면 이곳에 익명으로 자동 공개됩니다.';}};
+  render();loadShared();
+}
