@@ -72,8 +72,15 @@ function openSchedule(existing=null,day=0,start='09:00',preferredId=null){
   scheduleDialog.append(form);if(existing)scheduleDialog.append(button('이 수업 시간만 삭제',()=>{if(save({...data,schedules:data.schedules.filter(v=>v.id!==existing.id)})){scheduleDialog.close();render();}}));scheduleDialog.showModal();
 }
 const priorRenderCourses=renderCourses;
+const priorityStatus=el('p','course-priority-status');priorityStatus.id='course-priority-status';priorityStatus.setAttribute('role','status');$('#course-list').before(priorityStatus);
 renderCourses=function(container,query='',all=false){
-  const original=data,courses=getScheduleCourses();data={...data,courses};try{priorRenderCourses(container,query,all);}finally{data=original;}
+  const original=data,courses=all?getScheduleCourses():TimetableModel.evaluationCourses(data,selectedDate());data={...data,courses};try{priorRenderCourses(container,query,all);}finally{data=original;}
+  if(!all){
+    const visible=courses.filter(c=>`${c.title} ${c.professor} ${c.school}`.toLowerCase().includes(query.toLowerCase())),meetings=TimetableModel.meetingsOn(data,selectedDate());let count=0;
+    container.querySelectorAll('.course-card').forEach((card,i)=>{const c=visible[i],times=meetings.filter(m=>m.courseId===c.id);if(!times.length)return;count++;card.classList.add('scheduled-course');card.querySelector('.card-top').after(el('p','scheduled-date',`${selectedDate()===today?'오늘 수업':'선택 날짜 수업'} · ${times.map(m=>`${m.start}–${m.end}`).join(', ')}`));});
+    const date=new Date(selectedDate()+'T12:00:00').toLocaleDateString('ko-KR',{month:'long',day:'numeric',weekday:'short'});
+    priorityStatus.textContent=count?`${date} 수업 ${count}개를 시작 시간순으로 먼저 보여드려요.`:courses.length?(query?'검색 결과에 선택한 날짜의 수업이 없어요.':'선택한 날짜에 예정된 수업이 없어요. 시간표의 다른 과목도 평가할 수 있어요.'):'';
+  }
   if(!courses.length){container.replaceChildren();empty(container,'이 시간표에 과목이 없어요','개설 강좌에서 과목을 선택해 시간표를 구성해주세요.',true);}
   if(all)container.querySelectorAll('.course-card').forEach((card,i)=>{const c=courses[i],locations=TimetableModel.meetings(data).filter(m=>m.courseId===c.id);card.append(el('p','course-summary',locations.length?locations.map(m=>`${days[m.day]} ${m.start}–${m.end} · ${m.room||'강의실 미지정'}`).join('\n'):'수업 시간 미등록'),button('＋ 수업 시간 추가',()=>openSchedule(null,0,'09:00',c.id)),button('시간표에서 과목 빼기',()=>{const t=activeTimetable();if(save({...data,timetables:data.timetables.map(v=>v.id===t.id?{...v,courseIds:v.courseIds.filter(id=>id!==c.id)}:v),schedules:data.schedules.filter(m=>m.timetableId!==t.id||m.courseId!==c.id)})){render();notify('시간표에서 뺐어요. 평가 기록은 보관됩니다.');}}));});
 };
