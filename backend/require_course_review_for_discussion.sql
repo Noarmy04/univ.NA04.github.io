@@ -1,4 +1,4 @@
--- Pending deployment. Apply separately after explicit authorization.
+-- Applied migration: require_course_review_for_discussion.
 create or replace function na04_private.na04_api(action text, args jsonb default '{}') returns jsonb
 language plpgsql security definer set search_path = '' as $$
 declare u uuid := auth.uid(); result jsonb; p jsonb; rid uuid; body_text text; member na04_private.members%rowtype;
