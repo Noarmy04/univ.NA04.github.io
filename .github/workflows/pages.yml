@@ -20,8 +20,9 @@ jobs:
       - uses: actions/checkout@v4
       - name: Prepare public files
         run: |
-          mkdir public
-          cp index.html style.css community.css app.js community.js share-model.js timetable.js anonymous-config.js anonymous.js public/
+          mkdir -p public/catalog
+          cp index.html style.css community.css app.js community.js share-model.js timetable.js term-model.js catalog.js anonymous-config.js anonymous.js public/
+          cp catalog/*.js public/catalog/
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
