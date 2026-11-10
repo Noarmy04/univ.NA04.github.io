@@ -50,7 +50,7 @@ body:has(#discussion-page:not([hidden])) .content{padding-top:24px}
 body:has(#discussion-page:not([hidden])) .hero{margin-bottom:24px}
 body:has(#discussion-page:not([hidden])) .hero>div:first-child{display:none}
 body:has(#discussion-page:not([hidden])) .date-card{display:flex;align-items:center;gap:14px;width:100%;min-width:0;padding:14px 20px;text-align:left;background:#f0f4eb;box-shadow:none}
-body:has(#discussion-page:not([hidden])) .date-card span{font-size:15px;font-weight:600;color:var(--ink)}
-body:has(#discussion-page:not([hidden])) .date-card strong{font-family:inherit;font-size:26px;font-weight:700;line-height:1.2}
+body:has(#discussion-page:not([hidden])) .date-card time{font-family:inherit;font-size:18px;font-weight:600;line-height:1.4;font-variant-numeric:tabular-nums;color:var(--ink)}
+
 body:has(#discussion-page:not([hidden])) .date-card small{margin-left:auto;font-size:13px;color:var(--ink)}
-@media(max-width:720px){body:has(#discussion-page:not([hidden])) .date-card{padding:12px 14px;gap:10px}body:has(#discussion-page:not([hidden])) .date-card span{font-size:13px}body:has(#discussion-page:not([hidden])) .date-card strong{font-size:23px}}
+@media(max-width:720px){body:has(#discussion-page:not([hidden])) .date-card{padding:12px 14px;gap:10px}body:has(#discussion-page:not([hidden])) .date-card time{font-size:16px}}
