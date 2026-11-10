@@ -1,10 +1,8 @@
 'use strict';
 const sharedState={records:[],page:1,busy:false,hasMore:false,error:''};
-const sharedPage=el('div','page');sharedPage.id='community-page';sharedPage.hidden=true;
+const sharedPage=el('section','shared-feed');sharedPage.id='shared-feed';
 sharedPage.innerHTML='<div class="section-heading"><div><h2>학생들이 함께 남긴 기록</h2><p>GitHub에서 게시를 완료한 공개 기록입니다. 재학생 인증·공식 정보는 아닙니다.</p></div><button id="refresh-shared" class="secondary">새로고침 ↻</button></div><label class="search"><span>⌕</span><input id="shared-search" type="search" placeholder="과목, 교수님, 학교, 세션 검색" aria-label="학생 공유 검색"></label><p id="shared-status" role="status"></p><div id="shared-list"></div><button id="more-shared" class="secondary" hidden>이전 공유 기록 더 보기 ↓</button>';
-$('.bottom-line').before(sharedPage);
-const nav=el('a','','◇ ');nav.href='#community';nav.dataset.page='community';nav.append(el('span','','학생 공유'));$('nav').insertBefore(nav,$('nav a[data-page=guide]'));
-pages.community=['학생 공유','함께 나누는 수업 이야기','과목 정보와 날짜별 수업 경험을 학생들과 공유해보세요.'];
+$('#today-page').append(sharedPage);
 const detail=el('dialog');detail.id='detail-dialog';detail.className='wide-dialog';document.body.append(detail);
 const shareDialog=el('dialog');shareDialog.id='share-dialog';document.body.append(shareDialog);
 function externalLink(label,url){const a=el('a','secondary',label);a.href=url;a.target='_blank';a.rel='noopener noreferrer';return a;}
@@ -18,7 +16,7 @@ function offerShare(course,review=null){
   headingDialog(shareDialog,'학생들과 공개 공유',`${course.title} · ${course.professor} 교수님`);
   shareDialog.append(el('p','','GitHub 로그인 후 게시 버튼을 누르면 계정명과 아래 내용이 모두에게 공개됩니다. 지금까지의 개인 기록은 그대로 보관됩니다.'));
   const preview=el('div','share-preview');preview.append(el('strong','',course.title),el('p','',review?`수업 ${review.date} · ${review.session||'기본 세션'} · 만족도 ${review.overall}/5\n${review.comment||'한 줄 평가 없음'}`:`수업 방식: ${course.description||'미등록'}\n시험 정보: ${course.exams||'미등록'}`));shareDialog.append(preview);
-  shareDialog.append(el('p','form-help','공유되는 데이터에는 이 과목의 수업 진행 방식과 시험 정보도 포함됩니다. 게시 후 학생 공유의 새로고침을 눌러주세요. 수정·공유 해제는 GitHub 원문에서 할 수 있습니다.'));
+  shareDialog.append(el('p','form-help','공유되는 데이터에는 이 과목의 수업 진행 방식과 시험 정보도 포함됩니다. 게시 후 오늘의 강의 아래 공유 기록의 새로고침을 눌러주세요. 수정·공유 해제는 GitHub 원문에서 할 수 있습니다.'));
   if(url.length>7000){const draftUrl=new URL(url);const body=draftUrl.searchParams.get('body');draftUrl.searchParams.delete('body');url=draftUrl.toString();shareDialog.append(el('p','form-help','내용이 길어 본문을 복사한 뒤 GitHub의 본문 칸에 붙여넣어주세요.'));const field=el('textarea');field.value=body;field.readOnly=true;field.rows=5;field.setAttribute('aria-label','공유 본문');shareDialog.append(field,button('공유 본문 복사',async()=>{try{await navigator.clipboard.writeText(body);notify('본문을 복사했어요. GitHub 본문 칸에 붙여넣어주세요.');}catch{field.select();notify('본문을 선택했어요. 직접 복사해주세요.');}}));}
   const a=externalLink('내용 확인 후 GitHub에서 게시하기 ↗',url);a.className='primary share-link';shareDialog.append(a);shareDialog.showModal();
 }
@@ -28,13 +26,13 @@ function reviewCard(r,c,entry=null){const box=el('article','history-card');const
 function openDetail(id){const c=data.courses.find(c=>c.id===id);if(!c)return;headingDialog(detail,c.title,`${c.school} · ${c.professor} 교수님`);const actions=el('div','actions');actions.append(button('과목 정보 수정',()=>editCourse(c)),button('과목 정보 공유 ↗',()=>offerShare(c)));detail.append(actions);const info=el('div','course-info');info.append(el('h3','','수업 진행 방식'),el('p','',c.description||'아직 등록된 설명이 없어요. 과목 정보 수정에서 추가해주세요.'),el('h3','','시험 정보'),el('p','',c.exams||'아직 등록된 시험 정보가 없어요. 일정·범위·유형 등을 기록해보세요.'));detail.append(info);
   const sessionHead=el('div','section-heading');sessionHead.append(el('h2','','날짜별 수업 세션'),button('＋ 세션 평가',()=>{detail.close();openReview(c.id,selectedDate(),'새 세션');},'primary'));detail.append(sessionHead);
   const own=data.reviews.filter(r=>r.courseId===id).sort((a,b)=>b.date.localeCompare(a.date));if(!own.length)detail.append(el('p','form-help','아직 평가한 세션이 없어요. 실제 수업 날짜와 세션을 입력해보세요.'));own.forEach(r=>detail.append(reviewCard(r,c)));
-  detail.append(el('h3','subheading','이 과목의 학생 공유'));const entries=sharedFor(c);if(!entries.length)detail.append(el('p','form-help','불러온 공유 기록 중 이 과목의 기록이 없습니다. 학생 공유에서 새로고침하거나 이전 기록을 더 불러와보세요.'));entries.forEach(entry=>detail.append(sharedCard(entry)));detail.showModal();
+  detail.append(el('h3','subheading','이 과목의 학생 공유'));const entries=sharedFor(c);if(!entries.length)detail.append(el('p','form-help','불러온 공유 기록 중 이 과목의 기록이 없습니다. 오늘의 강의 아래 공유 기록에서 새로고침하거나 이전 기록을 더 불러와보세요.'));entries.forEach(entry=>detail.append(sharedCard(entry)));detail.showModal();
 }
 const originalRenderCourses=renderCourses;
 renderCourses=function(container,query='',all=false){originalRenderCourses(container,query,all);const courses=data.courses.filter(c=>`${c.title} ${c.professor} ${c.school}`.toLowerCase().includes(query.toLowerCase()));container.querySelectorAll('.course-card').forEach((card,index)=>{const c=courses[index];const summary=el('p','course-summary',c.description||'수업 방식과 시험 정보를 추가해보세요.');card.querySelector('.card-bottom').before(summary);const details=el('div','actions card-actions');details.append(button('과목 상세 · 세션 보기',()=>openDetail(c.id)));card.append(details);});};
 renderHistory=function(){
   const q=$('#history-search').value.toLowerCase(),list=$('#history-list');list.replaceChildren();const groups=new Map();
-  [...data.reviews].sort((a,b)=>b.date.localeCompare(a.date)).forEach(r=>{const c=data.courses.find(c=>c.id===r.courseId);if(!c||!`${c.title} ${c.professor} ${r.comment||''} ${r.session||'기본 세션'} ${r.date}`.toLowerCase().includes(q))return;let group=groups.get(c.id);if(!group){group=el('section','history-group');group.append(el('h3','subheading',`${c.title} · ${c.professor} 교수님`));groups.set(c.id,group);list.append(group);}group.append(reviewCard(r,c));});
+  [...data.reviews].sort((a,b)=>$('#history-order')?.value==='oldest'?a.date.localeCompare(b.date):b.date.localeCompare(a.date)).forEach(r=>{const c=data.courses.find(c=>c.id===r.courseId);if(!c||!`${c.title} ${c.professor} ${r.comment||''} ${r.session||'기본 세션'} ${r.date}`.toLowerCase().includes(q))return;let group=groups.get(r.date);if(!group){group=el('section','history-group');group.append(el('h2','subheading',r.date));groups.set(r.date,group);list.append(group);}const card=reviewCard(r,c);card.prepend(el('h3','record-course',`${c.title} · ${c.professor} 교수님`));group.append(card);});
   if(!groups.size)empty(list,'표시할 평가가 없어요','수업 날짜, 세션, 과목명으로 다시 검색해보세요.');
 };
 $('#history-search').placeholder='과목, 수업 날짜, 세션, 내용 검색';$('#history-search').oninput=renderHistory;
