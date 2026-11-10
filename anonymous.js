@@ -40,14 +40,6 @@ if(window.NA04_BACKEND?.url&&window.NA04_BACKEND?.publishableKey){
   offerShare=()=>notify('새 평가는 저장하면 익명으로 자동 공개됩니다.');
   const legacyDetail=openDetail;openDetail=function(id){legacyDetail(id);detail.querySelectorAll('button').forEach(b=>{if(b.textContent.includes('과목 정보 공유'))b.remove();});};
   document.querySelector('.storage-badge').textContent='● 익명 자동 공개';
-  const guide=$('#guide-page .guide');guide.replaceChildren();
-  for(const [title,text] of [
-    ['익명 평가와 대화','새로 작성하거나 수정해 저장한 평가는 모두에게 자동 공개됩니다. 개인정보는 적지 마세요. 기존 개인 기록은 자동으로 이전하지 않습니다.'],
-    ['대화 참여 안내',warning+' 첫 참여 시 안내를 확인한 후 글을 보낼 수 있습니다.'],
-    ['신고와 이용 제한','메시지의 신고 버튼으로 관리자에게 알릴 수 있습니다. 기본 금칙 표현은 전송이 거부되며 반복 사용 시 해당 익명 사용자의 글쓰기가 제한됩니다. 모든 유해 표현을 자동 판별하는 기능은 아닙니다.'],
-    ['익명 기록 보관','대화창마다 익명 별명이 표시됩니다. 브라우저 데이터를 삭제하면 이전 익명 사용자로 접근할 수 없습니다. 다른 기기와 개인 시간표는 자동 동기화되지 않습니다.'],
-    ['대화 확인','토론 메뉴에서 과목별 대화를 선택하세요. 해당 과목의 평가를 서버에 등록해야 참여할 수 있습니다. 열린 대화는 10초마다 새 글을 확인하며 직접 새로고침할 수도 있습니다.'],
-    ['수업과 시험 정보','수업 날짜와 세션을 구분해 기록하세요. 수업 방식과 시험 정보는 학생 작성 내용이며 공식 안내를 함께 확인해주세요.']]){guide.append(el('h3','',title),el('p','',text));}
   const baseRenderShared=renderShared;renderShared=function(){baseRenderShared();const emptyText=$('#shared-list .empty p');if(emptyText&&!sharedState.busy&&!sharedState.error){emptyText.textContent=sharedState.records.length?'다른 검색어로 다시 찾아보세요.':'새 평가를 저장하면 이곳에 익명으로 자동 공개됩니다.';}};
   render();route();renderDiscussions();loadShared();
 }
