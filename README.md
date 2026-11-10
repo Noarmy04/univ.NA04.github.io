@@ -25,5 +25,6 @@
 공개용 프로젝트 URL과 publishable key만 anonymous-config.js에 포함합니다.
 관리자 키나 비밀번호를 프런트엔드에 넣지 않습니다.
 
-GitHub Pages는 GitHub Actions로 정적 공개 파일만 배포합니다.
-데이터베이스 스키마 변경은 Pages 배포와 별도로 Supabase에 적용합니다.
+기본 작업 완료 범위는 커밋과 푸시까지입니다. 푸시해도 공개 사이트는 자동으로 갱신되지 않습니다.
+GitHub Pages는 사용자가 별도로 승인한 수동 GitHub Actions 실행으로 정적 공개 파일만 배포합니다.
+데이터베이스 스키마 변경도 별도로 승인받아 Supabase에 적용합니다.
