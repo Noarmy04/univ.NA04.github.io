@@ -8,6 +8,7 @@ let storageFailed = false;
 try { const saved = localStorage.getItem(KEY); if(saved) { const parsed = JSON.parse(saved); if(!Array.isArray(parsed.courses)||!Array.isArray(parsed.reviews)) throw Error('format'); data=parsed; } } catch { storageFailed=true; }
 function notify(message){$('#toast').textContent=message;$('#toast').classList.add('visible');clearTimeout(notify.timer);notify.timer=setTimeout(()=>$('#toast').classList.remove('visible'),3500);}
 function save(next){try{localStorage.setItem(KEY,JSON.stringify(next));data=next;return true;}catch{notify('저장 공간을 사용할 수 없습니다. 브라우저 설정을 확인해주세요.');return false;}}
+if(!storageFailed&&window.NA04ReviewReset){const next=NA04ReviewReset.apply(data);if(next!==data)save(next);}
 function el(tag,cls,text){const e=document.createElement(tag);if(cls)e.className=cls;if(text!==undefined)e.textContent=text;return e;}
 function mean(values){return values.length?(values.reduce((a,b)=>a+b,0)/values.length).toFixed(1):'—';}
 function empty(container,title,description,add=false){const box=el('div','empty');box.append(el('span','empty-icon','▤'),el('h3','',title),el('p','',description));if(add){const b=el('button','primary','＋ 첫 수업 추가하기');b.onclick=openCourse;box.append(b);}container.append(box);}

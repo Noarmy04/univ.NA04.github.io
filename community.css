@@ -9,6 +9,24 @@
 
 #catalog-dialog>input{display:block;width:100%;padding:12px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink)}
 
+/* Compact timetable: keep the full day range inside a scrollable panel. */
+#courses-page .timetable-host{max-height:52vh;overflow:auto;margin-top:14px;border:1px solid #dce3d5}
+#courses-page .timetable{border:0;border-radius:0}
+#courses-page .day-head,#courses-page .time-head{position:sticky;top:0;z-index:3;padding:6px;font-size:14px}
+#courses-page .time-head{font-size:10px;padding-top:8px;left:0;z-index:4}
+#courses-page .time-label{position:sticky;left:0;z-index:2;font-size:10px;padding-top:4px}
+#courses-page .class-block{padding:4px 6px;gap:2px}
+#courses-page .class-block strong{font-size:12px;line-height:1.25}
+#courses-page .class-block span,#courses-page .class-block small{font-size:9px;line-height:1.25}
+#courses-page .section-heading{margin-bottom:14px}
+#courses-page .section-heading h2{font-size:18px}
+#courses-page .timetable-tools{gap:8px;margin-top:0;margin-bottom:8px}
+#courses-page .version-field{gap:5px;font-size:11px}
+#courses-page .version-field select{padding:8px 10px}
+#courses-page .timetable-tools button{padding:9px 12px;font-size:11px}
+body:has(#courses-page:not([hidden])) .hero{margin-bottom:24px}
+@media(max-width:720px){#courses-page .timetable-host{max-height:48vh}#courses-page .section-heading h2{font-size:16px}}
+
 #discussion-status{font-size:12px;color:var(--muted);line-height:1.8;margin:20px 0}#discussion-list .history-card h3{font-size:17px}#discussion-page .search{max-width:none}
 
 .version-field{display:flex;flex-direction:column;gap:8px;flex:1;min-width:220px;font-size:12px;font-weight:700}.version-field select,.active-version select{padding:12px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink);max-width:100%}.timetable-tools{align-items:flex-end}.active-version{display:flex;align-items:center;flex-wrap:wrap;gap:12px;background:#edf2e8;border:1px solid #dce3d5;padding:16px;border-radius:10px;margin-bottom:20px}.active-version strong{font-size:14px}.active-version small{width:100%;color:var(--muted)}.catalog-source{background:#f0f3e9;border:1px solid #dce3d5;border-radius:8px;padding:12px;font-size:12px;line-height:1.7}.catalog-results{max-height:48vh;overflow:auto;margin:14px 0}.catalog-card{border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:10px}.catalog-card p{font-size:12px;white-space:pre-wrap;overflow-wrap:anywhere}.catalog-card button{font-size:12px}.course-card>button{display:block;width:100%;margin-top:8px;font-size:12px}dialog form>label{display:block;margin-top:16px}#catalog-dialog>button{margin:8px 8px 0 0}@media(max-width:720px){.version-field{min-width:100%}.active-version select{width:100%}.timetable-tools button{flex:1}.catalog-results{max-height:42vh}}
