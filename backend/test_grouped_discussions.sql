@@ -1,0 +1,38 @@
+begin;
+create temp table discussion_qa_results(result jsonb);
+do $qa$
+declare a uuid:=gen_random_uuid(); b uuid:=gen_random_uuid(); c uuid:=gen_random_uuid(); ca uuid:=gen_random_uuid(); r1 uuid; r2 uuid; r3 uuid; legacy_client uuid:=gen_random_uuid(); legacy_review uuid; p jsonb; x jsonb;
+begin
+insert into auth.users(id,is_anonymous) values(a,true),(b,true),(c,true);
+p:='{"schema":"univ-na04/v2","kind":"review","course":{"school":"QA campus","title":"QA subject","professor":"QA teacher","offering":{"year":2026,"term":"2","number":"111","meetings":[{"day":1,"start":"09:00","end":"11:00"}]}},"review":{"date":"2026-11-10","session":"A","comment":"QA","overall":4,"understanding":4,"delivery":4,"structure":4}}';
+perform set_config('request.jwt.claim.sub',a::text,true);
+x:=public.na04_api('review',jsonb_build_object('clientId',ca,'payload',p));r1:=(x->>'id')::uuid;if r1 is null then raise exception 'first review failed %',x;end if;
+perform public.na04_api('accept','{}');update na04_private.members set last_post=null where uid=a;
+x:=public.na04_api('message',jsonb_build_object('reviewId',r1,'body','QA A'));if x->>'ok' is distinct from 'true' then raise exception 'first message failed %',x;end if;
+perform set_config('request.jwt.claim.sub',b::text,true);
+x:=public.na04_api('messages',jsonb_build_object('reviewId',r1));if not x ? 'error' then raise exception 'unreviewed reader allowed';end if;
+x:=public.na04_api('review',jsonb_build_object('clientId',gen_random_uuid(),'payload',jsonb_set(p,'{review,date}','"2026-11-03"')));r2:=(x->>'id')::uuid;if r2 is null then raise exception 'second review failed %',x;end if;
+x:=public.na04_api('eligibility',jsonb_build_object('reviewId',r1));if x->>'canParticipate' is distinct from 'true' then raise exception 'same offering blocked';end if;
+x:=public.na04_api('messages',jsonb_build_object('reviewId',r2));if jsonb_array_length(x)<>1 then raise exception 'first merged message missing %',x;end if;
+perform public.na04_api('accept','{}');update na04_private.members set last_post=null where uid=b;
+x:=public.na04_api('message',jsonb_build_object('reviewId',r2,'body','QA B'));if x->>'ok' is distinct from 'true' then raise exception 'second message failed %',x;end if;
+perform set_config('request.jwt.claim.sub',a::text,true);
+x:=public.na04_api('messages',jsonb_build_object('reviewId',r1));if jsonb_array_length(x)<>2 then raise exception 'room messages not merged %',x;end if;
+if exists(select 1 from jsonb_array_elements(x) m where m ? 'uid' or m ? 'email') then raise exception 'identity exposed';end if;
+perform set_config('request.jwt.claim.sub',c::text,true);
+x:=public.na04_api('review',jsonb_build_object('clientId',gen_random_uuid(),'payload',jsonb_set(jsonb_set(p,'{course,offering,number}','"222"'),'{course,offering,meetings,0,day}','3')));r3:=(x->>'id')::uuid;
+x:=public.na04_api('eligibility',jsonb_build_object('reviewId',r1));if x->>'canParticipate' is distinct from 'false' then raise exception 'other section allowed';end if;
+x:=public.na04_api('messages',jsonb_build_object('reviewId',r1));if not x ? 'error' then raise exception 'other section read messages';end if;
+x:=public.na04_api('sync_offerings',jsonb_build_object('bindings',jsonb_build_array(jsonb_build_object('clientId',ca,'offering',jsonb_set(p->'course'->'offering','{number}','"222"')))));
+if x->>'synced' is distinct from '0' then raise exception 'another user offering changed';end if;
+perform set_config('request.jwt.claim.sub',a::text,true);
+x:=public.na04_api('messages',jsonb_build_object('reviewId',r2));if jsonb_array_length(x)<>2 then raise exception 'messages not preserved';end if;
+update na04_private.members set last_post=null where uid=a;
+x:=public.na04_api('review',jsonb_build_object('clientId',legacy_client,'payload',p #- '{course,offering}'));legacy_review:=(x->>'id')::uuid;
+x:=public.na04_api('sync_offerings',jsonb_build_object('bindings',jsonb_build_array(jsonb_build_object('clientId',legacy_client,'offering',p->'course'->'offering'))));
+if x->>'synced' is distinct from '1' then raise exception 'own legacy offering not synchronized %',x;end if;
+x:=public.na04_api('messages',jsonb_build_object('reviewId',legacy_review));if jsonb_array_length(x)<>2 then raise exception 'legacy messages not merged';end if;
+insert into discussion_qa_results values('{"datesShareMessages":true,"otherSectionsBlocked":true,"unreviewedBlocked":true,"ownershipEnforced":true,"identityPrivate":true,"messagesPreserved":true}');
+end $qa$;
+select result from discussion_qa_results;
+rollback;

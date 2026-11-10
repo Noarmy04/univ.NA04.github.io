@@ -1,0 +1,17 @@
+const assert=require('node:assert/strict'),M=require('./discussion-model.js');
+const offering=(number,day=1)=>({year:2026,term:'2',number,meetings:[{day,start:'09:00',end:'11:00'}]});
+const course=(id,title,number,day)=>({id,title,professor:'교수',school:'한양대학교 ERICA',catalogNumber:number,offering:offering(number,day)});
+const a=course('a','화요일 과목','111',1),b=course('b','월요일 과목','222',0),c=course('c','다른 분반','333',4);
+const state={courses:[b,a],reviews:[],timetables:[{id:'t',year:2026,term:'2',courseIds:['b','a']}],activeTimetableId:'t',schedules:[{timetableId:'t',courseId:'a',day:1,start:'09:00',end:'11:00'},{timetableId:'t',courseId:'b',day:0,start:'09:00',end:'11:00'}]};
+const record=(id,course,date)=>({id,payload:{kind:'review',course:{...course,offering:offering(course.catalogNumber,course===b?0:course===c?4:1)},review:{date,session:id}}});
+const records=[record('1',a,'2026-11-10'),record('2',a,'2026-11-03'),record('3',c,'2026-11-06')];
+const catalog={year:2026,term:'2',courses:[{title:'검색 전용 과목',professor:'다른 교수',number:'444',meetings:[{day:3,start:'10:00',end:'11:00'}]}]};
+const rooms=M.groups(state,records,catalog,'2026-11-10');assert.equal(rooms.length,2);assert.equal(rooms[0].course.id,'a');assert.equal(rooms[0].entries.length,2);assert.equal(rooms[1].course.id,'b');
+assert.equal(M.groups(state,records,catalog,'2026-11-10','다른 분반').length,1);assert.equal(M.groups(state,records,catalog,'2026-11-10','검색 전용').length,1);
+assert.equal(M.key(record('4',{...a,catalogNumber:'999'},'2026-11-10').payload),M.key(records[0].payload));
+assert.notEqual(M.key({...records[0].payload,course:{...records[0].payload.course,offering:offering('111',3)}}),M.key(records[0].payload));
+const split={...records[0].payload,course:{...records[0].payload.course,offering:{...offering('111'),meetings:[{day:1,start:'09:00',end:'10:00'},{day:1,start:'10:00',end:'11:00'}]}}};assert.equal(M.key(split),M.key(records[0].payload));
+assert.equal(M.key(records[0].payload),M.key(records[1].payload));
+assert.notEqual(M.key({...records[0].payload,course:{...records[0].payload.course,offering:{...offering('111'),year:2027}}}),M.key(records[0].payload));
+assert.equal(M.groups(state,records,catalog,'2026-11-09')[0].course.id,'b');
+console.log('Discussion grouping passed: dates merged, sections and terms isolated, today first, off-timetable search only.');
