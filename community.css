@@ -6,3 +6,5 @@
 .brand>span:nth-child(2){font-family:Arial,"Malgun Gothic",sans-serif;font-weight:800;letter-spacing:.2px}.brand b{font-weight:800}.brand small{font-family:"Malgun Gothic","Noto Sans KR",sans-serif;font-weight:600;letter-spacing:-.3px}
 
 .chat-warning{padding:18px;border:1px solid #dfc58d;background:#fff8e8;border-radius:10px;margin-bottom:18px}.chat-warning strong{font-size:15px}.chat-warning p{font-size:13px;color:#755f3e}.chat-list{max-height:42vh;overflow:auto;margin-bottom:20px}.chat-list article p{white-space:pre-wrap;overflow-wrap:anywhere}.chat-list article small{font-size:10px;color:var(--muted)}
+
+#discussion-status{font-size:12px;color:var(--muted);line-height:1.8;margin:20px 0}#discussion-list .history-card h3{font-size:17px}#discussion-page .search{max-width:none}
