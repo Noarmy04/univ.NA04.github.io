@@ -43,12 +43,12 @@ if(window.NA04_BACKEND?.url&&window.NA04_BACKEND?.publishableKey){
   const legacyDetail=openDetail;openDetail=function(id){legacyDetail(id);detail.querySelectorAll('button').forEach(b=>{if(b.textContent.includes('과목 정보 공유'))b.remove();});if(sharedState.locked)detail.append(el('p','feed-access-note','다른 학생의 평가는 본인의 수업 평가를 1개 이상 등록한 뒤 확인할 수 있어요.'));};
   document.querySelector('.storage-badge').textContent='● 익명 자동 공개';
   renderShared=function(){
-    const list=$('#shared-list'),search=$('#shared-search');list.replaceChildren();search.disabled=sharedState.locked||sharedState.busy;$('#more-shared').hidden=true;$('#refresh-shared').disabled=sharedState.busy;
+    const list=$('#shared-list'),search=$('#shared-search');list.replaceChildren();search.disabled=sharedState.locked||sharedState.busy;sharedDate.disabled=sharedState.locked||sharedState.busy;clearSharedDate.disabled=sharedState.locked||sharedState.busy;$('#more-shared').hidden=true;$('#refresh-shared').disabled=sharedState.busy;
     if(sharedState.busy){$('#shared-status').textContent='평가 등록 여부를 확인하는 중…';return;}
     if(sharedState.error){$('#shared-status').textContent=sharedState.error;empty(list,'평가 등록 여부를 확인하지 못했어요','잠시 후 새로고침해주세요. 다른 학생의 평가 내용은 표시하지 않습니다.');return;}
     if(sharedState.locked){$('#shared-status').textContent='평가를 1개 이상 등록한 사용자만 다른 학생의 평가를 볼 수 있습니다.';empty(list,'내 평가를 남기면 다른 학생들의 평가를 볼 수 있어요','위에서 수업 평가를 1개 이상 작성하고 공개 등록을 완료해주세요. 개인 저장만 했거나 게시 대기 중인 평가는 포함되지 않습니다.');list.querySelector('.empty').append(button('수업 평가하러 가기',()=>{location.hash='#today';$('#course-list').scrollIntoView({behavior:'smooth',block:'start'});},'primary'));return;}
-    const q=search.value.toLowerCase(),entries=sharedState.records.filter(e=>`${e.payload.course.title} ${e.payload.course.professor} ${e.payload.course.school} ${e.payload.review?.session||''} ${e.payload.review?.date||''}`.toLowerCase().includes(q));
-    entries.forEach(entry=>list.append(sharedCard(entry)));if(!entries.length)empty(list,'아직 표시할 공유 기록이 없어요',q?'다른 검색어로 다시 찾아보세요.':'새 평가가 등록되면 여기에 표시됩니다.');$('#shared-status').textContent=`평가 등록 확인 완료 · 공개 기록 ${sharedState.records.length}개`;
+    const q=search.value.toLowerCase(),entries=filteredSharedRecords();
+    entries.forEach(entry=>list.append(sharedCard(entry)));if(!entries.length)empty(list,'아직 표시할 공유 기록이 없어요',q||sharedDate.value?'날짜나 검색어를 바꾸거나 전체 날짜를 선택해주세요.':'새 평가가 등록되면 여기에 표시됩니다.');$('#shared-status').textContent=`평가 등록 확인 완료 · 표시 ${entries.length}개 · 불러온 평가 ${sharedState.records.length}개`;
   };
   render();route();renderDiscussions();loadShared();
 }

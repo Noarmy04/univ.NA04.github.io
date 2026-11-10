@@ -13,7 +13,7 @@ const timetableHost=el('div','timetable-host');$('#all-courses').before(timetabl
 const scheduleDialog=el('dialog');scheduleDialog.id='schedule-dialog';document.body.append(scheduleDialog);
 const versionDialog=el('dialog');document.body.append(versionDialog);
 const catalogDialog=el('dialog','wide-dialog');catalogDialog.id='catalog-dialog';document.body.append(catalogDialog);
-const tools=el('div','actions timetable-tools'),versionSelect=el('select'),versionField=el('label','version-field','시간표 버전');versionSelect.setAttribute('aria-label','내 수업 시간표 선택');versionField.append(versionSelect);tools.append(versionField,button('＋ 새 시간표',()=>openVersion()),button('버전 정보 수정',()=>openVersion(activeTimetable())));timetableHost.before(tools);
+const tools=el('div','actions timetable-tools'),versionSelect=el('select'),versionField=el('label','version-field','시간표 버전');versionSelect.setAttribute('aria-label','내 시간표 선택');versionField.append(versionSelect);tools.append(versionField,button('＋ 새 시간표',()=>openVersion()),button('버전 정보 수정',()=>openVersion(activeTimetable())));timetableHost.before(tools);
 const todayVersion=el('div','active-version');$('#today-page .filter-row').before(todayVersion);
 const courseListTitle=el('h2','subheading','이 시간표의 과목');$('#all-courses').before(courseListTitle);
 $('#courses-page .section-heading p').textContent='학기와 버전을 선택하고 수업을 구성하세요. 이 시간표의 과목만 평가할 수 있어요.';
@@ -93,5 +93,5 @@ function renderTimetable(){
   todayVersion.replaceChildren(el('strong','',timetableLabel()));const switcher=versionSelect.cloneNode(true);switcher.setAttribute('aria-label','평가할 시간표 선택');switcher.value=data.activeTimetableId;switcher.onchange=()=>changeVersion(switcher.value);todayVersion.append(switcher,el('small','','선택한 시간표의 과목만 평가할 수 있어요.'));$('#course-count').replaceChildren(document.createTextNode(getScheduleCourses().length),el('small','','개'));$('#class-count').textContent=getScheduleCourses().length;
 }
 const beforeTimetableRender=render;render=function(){beforeTimetableRender();renderTimetable();};
-const beforeLayoutRoute=route;route=function(){if(location.hash==='#community')history.replaceState(null,'','#today');pages.courses=['내 수업',`${activeTimetable().year}년 ${terms[activeTimetable().term]} 시간표`,`${activeTimetable().name} · 학기와 버전별로 나의 수업을 구성하세요.`];beforeLayoutRoute();$('.hero').hidden=['#today','#history','#courses',''].includes(location.hash);$('.date-card').hidden=location.hash==='#courses';};
+const beforeLayoutRoute=route;route=function(){if(location.hash==='#community')history.replaceState(null,'','#today');pages.courses=['내 시간표',`${activeTimetable().year}년 ${terms[activeTimetable().term]} 시간표`,`${activeTimetable().name} · 학기와 버전별로 나의 수업을 구성하세요.`];beforeLayoutRoute();$('.hero').hidden=['#today','#history','#courses',''].includes(location.hash);$('.date-card').hidden=location.hash==='#courses';};
 window.removeEventListener('hashchange',beforeLayoutRoute);window.addEventListener('hashchange',route);$('#history-order').onchange=renderHistory;render();route();
