@@ -31,3 +31,40 @@ const beforeHubReviewCard=reviewCard;reviewCard=function(r,c,entry=null){const c
 selectReviewPanel('students');renderHistory();renderShared();
 
 $('#review-date').addEventListener('input',()=>{$('#review-week').textContent=AcademicWeek.label($('#review-date').value,AcademicWeek.start(activeTimetable()));});
+
+const reviewWeekLabel=el('label','date-filter','수업 주차 '),reviewWeek=el('input');
+reviewWeek.type='number';reviewWeek.min='1';reviewWeek.step='1';reviewWeek.placeholder='예: 11';reviewWeek.id='shared-week';reviewWeek.setAttribute('aria-label','학생 평가 수업 주차');reviewWeekLabel.append(reviewWeek);
+const resetWeek=button('전체 주차',()=>{reviewWeek.value='';renderShared();});
+$('#shared-feed .shared-filters').append(reviewWeekLabel,resetWeek);reviewWeek.oninput=()=>renderShared();
+let selectedReviewGroup=null;
+const beforeGroupedRender=renderShared;
+renderShared=function(){
+  beforeGroupedRender();
+  const disabled=sharedState.locked||sharedState.busy||!!sharedState.error;reviewWeek.disabled=disabled;resetWeek.disabled=disabled;
+  if(disabled)return;
+  const groups=ReviewGroupModel.groups(filteredSharedRecords(),reviewWeek.value),list=$('#shared-list');list.replaceChildren();
+  if(!groups.some(g=>g.key===selectedReviewGroup))selectedReviewGroup=null;
+  const total=groups.reduce((sum,g)=>sum+g.entries.length,0);
+  $('#shared-status').textContent=`과목·주차 ${groups.length}개 · 평가 ${total}개 · 과목 탭을 눌러 평점과 한줄평을 확인하세요.`;
+  if(!groups.length){empty(list,'조건에 맞는 과목 평가가 없어요','과목 검색어, 평가 날짜 또는 수업 주차를 바꿔보세요.');return;}
+  const tabs=el('div','course-review-tabs');tabs.setAttribute('role','tablist');tabs.setAttribute('aria-label','수업·주차별 평가');
+  const panel=el('section','course-review-panel');panel.id='course-review-panel';panel.setAttribute('role','tabpanel');panel.tabIndex=0;
+  const buttons=[];
+  function choose(index,focus=false){
+    const group=groups[index];selectedReviewGroup=group.key;panel.hidden=false;panel.replaceChildren();panel.setAttribute('aria-labelledby','course-review-tab-'+index);
+    panel.append(el('h3','',`${group.course.title} · ${group.label}`),el('p','',`학생 평가 ${group.entries.length}개 · 평점과 한줄평`));
+    for(const entry of group.entries)panel.append(sharedCard(entry));
+    buttons.forEach((b,i)=>{b.setAttribute('aria-selected',String(i===index));b.tabIndex=i===index?0:-1;});
+    if(focus)buttons[index].focus();
+  }
+  for(const [index,g] of groups.entries()){
+    const tab=button('',()=>choose(index),'course-review-tab');tab.id='course-review-tab-'+index;tab.setAttribute('role','tab');tab.setAttribute('aria-controls',panel.id);tab.setAttribute('aria-selected','false');tab.tabIndex=index===0?0:-1;
+    const o=g.offering,times=o.meetings.length?o.meetings.map(m=>`${days[m.day]} ${m.start}–${m.end}`).join(' · '):o.number?`수업번호 ${o.number}`:'수업 시간 미등록';
+    tab.append(el('strong','',g.course.title),el('span','',`${g.course.professor} 교수님 · ${o.year}년 ${terms[o.term]||o.term}`),el('span','',times),el('span','group-week',`${g.label} · 평가 ${g.entries.length}개`));
+    tab.onkeydown=e=>{const next=e.key==='ArrowRight'?(index+1)%groups.length:e.key==='ArrowLeft'?(index+groups.length-1)%groups.length:e.key==='Home'?0:e.key==='End'?groups.length-1:null;if(next!==null){e.preventDefault();choose(next,true);}};
+    buttons.push(tab);tabs.append(tab);
+  }
+  panel.hidden=true;list.append(tabs,panel);
+  const index=groups.findIndex(g=>g.key===selectedReviewGroup);if(index>=0)choose(index);
+};
+$('#shared-search').oninput=()=>renderShared();renderShared();

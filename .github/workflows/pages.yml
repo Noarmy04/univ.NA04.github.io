@@ -21,7 +21,7 @@ jobs:
       - name: Prepare public files
         run: |
           mkdir -p public/catalog
-          cp academic-week.js index.html style.css community.css app.js review-reset.js review-hub.js page-help.js everytime-model.js everytime-import.js community.js share-model.js timetable.js term-model.js discussion-model.js catalog.js anonymous-config.js anonymous.js public/
+          cp review-group-model.js academic-week.js index.html style.css community.css app.js review-reset.js review-hub.js page-help.js everytime-model.js everytime-import.js community.js share-model.js timetable.js term-model.js discussion-model.js catalog.js anonymous-config.js anonymous.js public/
           cp catalog/*.js public/catalog/
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
