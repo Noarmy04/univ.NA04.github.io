@@ -5,3 +5,5 @@ const groups=M.groups(records);assert.equal(groups.length,4);assert.equal(groups
 const custom=record('f');custom.payload.review.weekStart='2026-09-08';assert.equal(M.info(custom).week,10);assert.notEqual(M.info(custom).key,M.info(records[0]).key);
 const unknown=[record('x'),record('y','2026-11-11')];unknown.forEach(x=>x.payload.course.offering.year=2027);assert.equal(M.groups(unknown).length,2);assert.equal(M.groups(unknown,'11').length,0);
 console.log('Review grouping passed: same class/week merged; weeks, times, professors and custom baselines isolated; week filter and unknown dates safe.');
+const courseGroups=M.courses(records);assert.equal(courseGroups.length,3);assert.equal(courseGroups[0].weeks.length,2);assert.equal(courseGroups[0].count,3);assert.deepEqual(courseGroups[0].weeks.map(w=>w.week),[11,10]);assert.equal(M.courses(records,'10')[0].weeks.length,1);assert.equal(M.courses(records,'10')[0].count,1);
+console.log('Course-first selection passed: weeks nested, different class times isolated, week filters retained.');

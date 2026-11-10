@@ -16,5 +16,15 @@
     }
     return [...map.values()];
   }
-  const model={info,groups};root.ReviewGroupModel=model;if(typeof module!=='undefined')module.exports=model;
+  function courses(entries,week=''){
+    const map=new Map();
+    for(const group of groups(entries,week)){
+      const key=root.DiscussionModel.key({course:group.course});
+      if(!map.has(key))map.set(key,{key,course:group.course,offering:group.offering,weeks:[],count:0});
+      const course=map.get(key);course.weeks.push(group);course.count+=group.entries.length;
+    }
+    for(const course of map.values())course.weeks.sort((a,b)=>(b.week??-1)-(a.week??-1)||b.entries[0].payload.review.date.localeCompare(a.entries[0].payload.review.date));
+    return [...map.values()];
+  }
+  const model={info,groups,courses};root.ReviewGroupModel=model;if(typeof module!=='undefined')module.exports=model;
 })(typeof globalThis!=='undefined'?globalThis:this);
