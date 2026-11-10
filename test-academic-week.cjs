@@ -1,0 +1,15 @@
+const assert=require('node:assert/strict');global.window={};require('./academic-week.js');const w=window.AcademicWeek;
+assert.equal(w.number('2026-09-01','2026-09-01'),1);
+assert.equal(w.number('2026-09-07','2026-09-01'),1);
+assert.equal(w.number('2026-09-08','2026-09-01'),2);
+assert.equal(w.number('2026-11-10','2026-09-01'),11);
+assert.equal(w.label('2026-08-31','2026-09-01'),'개강 전');
+assert.equal(w.number('2027-01-04','2026-12-29'),1);
+assert.equal(w.number('2024-03-06','2024-02-28'),2);
+assert.equal(w.day('2026-02-29'),null);assert.equal(w.number('bad','2026-09-01'),null);
+assert.equal(w.start({year:2027,term:'2'}),'');
+assert.equal(w.start({year:2026,term:'2',weekStart:''}),'');
+assert.equal(w.reviewStart({date:'2026-11-10'},{offering:{year:2026,term:'2'}},{}),'2026-09-01');
+assert.equal(w.reviewStart({weekStart:'2026-09-03'},{offering:{year:2026,term:'2'}},{}),'2026-09-03');
+assert.equal(w.reviewStart({timetableId:'old'},null,{timetables:[{id:'old',year:2026,term:'1'}]}),'2026-03-03');
+console.log('Academic week: boundaries, leap years, custom baselines and historical context passed');

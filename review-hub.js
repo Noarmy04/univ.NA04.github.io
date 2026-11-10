@@ -26,6 +26,8 @@ function labelReview(card,r){
   comment.classList.add('daily-comment');comment.textContent=`한줄평: ${r.comment||'작성된 한줄평이 없습니다.'}`;
   return card;
 }
-const beforeHubSharedCard=sharedCard;sharedCard=function(entry){const card=beforeHubSharedCard(entry),r=entry.payload.review;if(!r)return card;const score=card.querySelector('.score');if(score)score.before(el('p','daily-lesson',`수업 ${r.date} · ${r.session||'기본 세션'}`));return labelReview(card,r);};
-const beforeHubReviewCard=reviewCard;reviewCard=function(r,c,entry=null){return labelReview(beforeHubReviewCard(r,c,entry),r);};
+const beforeHubSharedCard=sharedCard;sharedCard=function(entry){const card=beforeHubSharedCard(entry),r=entry.payload.review;if(!r)return card;const score=card.querySelector('.score');if(score)score.before(el('p','daily-lesson',`수업 ${r.date} · ${AcademicWeek.label(r.date,AcademicWeek.reviewStart(r,entry.payload.course))} · ${r.session||'기본 세션'}`));return labelReview(card,r);};
+const beforeHubReviewCard=reviewCard;reviewCard=function(r,c,entry=null){const card=labelReview(beforeHubReviewCard(r,c,entry),r);const week=el('p','academic-week',AcademicWeek.label(r.date,AcademicWeek.reviewStart(r,c,data)));const start=AcademicWeek.reviewStart(r,c,data);if(start)week.title='주차 기준일: '+start;card.querySelector('.score')?.before(week);return card;};
 selectReviewPanel('students');renderHistory();renderShared();
+
+$('#review-date').addEventListener('input',()=>{$('#review-week').textContent=AcademicWeek.label($('#review-date').value,AcademicWeek.start(activeTimetable()));});
