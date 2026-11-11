@@ -39,7 +39,8 @@ $('#shared-feed .shared-filters').append(reviewWeekLabel,resetWeek);reviewWeek.o
 let selectedReviewGroup=null,selectedReviewWeek=null;
 const beforeGroupedRender=renderShared;
 renderShared=function(){
-  beforeGroupedRender();
+  const prepared=typeof prepareSharedFeed==='function';
+  if(prepared)prepareSharedFeed();else beforeGroupedRender();
   const disabled=sharedState.locked||sharedState.busy||!!sharedState.error;reviewWeek.disabled=disabled;resetWeek.disabled=disabled;
   if(disabled)return;
   const groups=ReviewGroupModel.courses(filteredSharedRecords(),reviewWeek.value),list=$('#shared-list');list.replaceChildren();
@@ -62,7 +63,7 @@ renderShared=function(){
       selectedReviewWeek=select.value||null;results.replaceChildren();const w=group.weeks.find(w=>w.key===selectedReviewWeek);
       if(!w){results.append(el('p','review-week-hint','주차를 선택하면 평점과 한줄평이 표시됩니다.'));return;}
       const rows=el('ul','compact-reviews');rows.setAttribute('aria-label',w.label+' 학생 평가');
-      for(const entry of w.entries){const r=entry.payload.review,row=el('li','compact-review');const content=el('div','compact-content');content.append(el('p','compact-comment',r.comment||'작성된 한줄평이 없습니다.'),el('small','compact-metrics',`이해도 ${r.understanding} / 5 · 전달력 ${r.delivery} / 5 · 수업 구성 ${r.structure} / 5`));row.append(el('strong','compact-score',`평점 ${r.overall} / 5`),content);rows.append(row);}
+      for(const entry of w.entries){const r=entry.payload.review,row=el('li','compact-review');const content=el('div','compact-content');content.append(el('p','compact-comment',r.comment||'작성된 한줄평이 없습니다.'),el('small','compact-metrics',reviewMetricsText(r,true)));row.append(el('strong','compact-score',`평점 ${r.overall} / 5`),content);rows.append(row);}
       results.append(rows);
     }
     select.value=group.weeks.some(w=>w.key===selectedReviewWeek)?selectedReviewWeek:'';select.onchange=showWeek;showWeek();

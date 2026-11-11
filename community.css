@@ -3,7 +3,7 @@
 
 .day-head,.time-head{background:#eef2e8}.time-label{background:#f3f5ed;color:#71816b}.sidebar-note{padding:14px 16px;border-radius:10px}.sidebar-note span{font-size:9px}.sidebar-note p{font-size:14px;line-height:1.6;margin:8px 0}.sidebar-note .note-art{font-size:80px;bottom:-18px;right:-3px}aside footer{margin-top:20px}
 
-.brand>span:nth-child(2){font-family:Arial,"Malgun Gothic",sans-serif;font-weight:800;letter-spacing:.2px}.brand b{font-weight:800}.brand small{font-family:"Malgun Gothic","Noto Sans KR",sans-serif;font-weight:600;letter-spacing:-.3px}
+.brand>span:nth-child(2){font-family:Arial,"Malgun Gothic",sans-serif;font-weight:800;letter-spacing:.2px}.brand b{font-weight:800}
 
 .chat-warning{padding:18px;border:1px solid #dfc58d;background:#fff8e8;border-radius:10px;margin-bottom:18px}.chat-warning strong{font-size:15px}.chat-warning p{font-size:13px;color:#755f3e}.chat-list{max-height:42vh;overflow:auto;margin-bottom:20px}.chat-list article p{white-space:pre-wrap;overflow-wrap:anywhere}.chat-list article small{font-size:10px;color:var(--muted)}
 

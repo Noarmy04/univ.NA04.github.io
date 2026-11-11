@@ -30,7 +30,7 @@ function openCatalog(query=''){
   headingDialog(catalogDialog,'시간표에 과목 추가',timetableLabel());
   catalogDialog.append(el('p','catalog-source',`자료: ERICA ${NA04_CATALOG.year}년 ${terms[NA04_CATALOG.term]} · ${NA04_CATALOG.courses.length.toLocaleString()}개 강좌. 다른 학기의 개설·시간 정보는 공식 수강편람을 확인해주세요.`));
   const search=el('input');search.type='search';search.placeholder='과목명, 교수명, 수업번호, 강의실 검색';search.setAttribute('aria-label','개설 강좌 검색');search.value=query;catalogDialog.append(search);
-  const status=el('p','form-help'),list=el('div','catalog-results');catalogDialog.append(button('이전에 등록한 과목에서 선택',openSavedCourses),status,list,button('목록에 없는 과목 직접 등록',()=>{catalogDialog.close();legacyOpenCourse();}));
+  const status=el('p','form-help'),list=el('div','catalog-results');catalogDialog.append(button('이전에 등록한 과목에서 선택',openSavedCourses),status,list,button('목록에 없는 과목 직접 등록',()=>{catalogDialog.close();openManualCourse();}));
   function results(){list.replaceChildren();const q=search.value.trim().toLowerCase(),matches=NA04_CATALOG.courses.filter(c=>`${c.title} ${c.professor} ${c.number} ${c.code} ${c.room}`.toLowerCase().includes(q));status.textContent=`검색 결과 ${matches.length.toLocaleString()}개${matches.length>60?' · 처음 60개 표시, 검색어를 더 입력해주세요.':''}`;for(const c of matches.slice(0,60)){const card=el('article','catalog-card');card.append(el('strong','',c.title),el('p','',`${c.professor||'담당교수 미정'} · ${c.code} · 수업번호 ${c.number} · ${c.credits}학점`),el('p','',c.time||'시간 미지정'),el('p','',c.room||'강의실 미지정'));const exists=getScheduleCourses().some(v=>v.catalogNumber===c.number),b=button(exists?'추가됨':'이 강좌 선택',()=>catalogPreview(c));b.disabled=exists;card.append(b);list.append(card);}if(!matches.length)list.append(el('p','','검색된 강좌가 없어요. 다른 검색어나 직접 등록을 이용해주세요.'));}
   search.oninput=results;results();catalogDialog.showModal();
 }
@@ -56,9 +56,6 @@ function catalogPreview(c){
     if(save({...data,courses:existing?data.courses.map(v=>v.id===course.id?course:v):[...data.courses,course],timetables:data.timetables.map(v=>v.id===t.id?{...v,courseIds:[...v.courseIds,course.id]}:v),schedules:[...data.schedules,...meetings.map(m=>({...m,id:crypto.randomUUID(),courseId:course.id,timetableId:t.id}))]})){catalogDialog.close();render();if(!meetings.length)openSchedule(null,0,'09:00',course.id);else notify('과목과 강의실·수업 시간을 추가했어요.');}
   },'primary');add.disabled=conflicts.length>0;catalogDialog.append(add,button('다른 강좌 찾기',()=>openCatalog(c.title)));
 }
-const legacyOpenCourse=openCourse;
-openCourse=function(){openCatalog();};document.querySelectorAll('.add-course').forEach(b=>b.onclick=()=>openCatalog());
-editCourse=function(c){detail.close();legacyOpenCourse();editingCourseId=c.id;for(const key of ['title','professor','school','department','description','exams'])$('#course-form').elements.namedItem(key).value=c[key]||'';$('#course-form h2').textContent='과목 정보 수정';$('#course-form button[type=submit]').textContent='변경 저장하기';};
 const courseSubmit=$('#course-form').onsubmit;
 $('#course-form').onsubmit=e=>{const wasEdit=editingCourseId,before=data;courseSubmit(e);if(data===before||wasEdit)return;const c=data.courses.at(-1),t=activeTimetable();if(save({...data,timetables:data.timetables.map(v=>v.id===t.id?{...v,courseIds:[...v.courseIds,c.id]}:v)})){render();openSchedule(null,0,'09:00',c.id);}};
 function openSchedule(existing=null,day=0,start='09:00',preferredId=null){
@@ -71,10 +68,8 @@ function openSchedule(existing=null,day=0,start='09:00',preferredId=null){
   form.onsubmit=e=>{e.preventDefault();const f=new FormData(form),m={id:existing?.id||crypto.randomUUID(),timetableId:activeTimetable().id,courseId:f.get('courseId'),day:Number(f.get('day')),start:f.get('start'),end:f.get('end'),room:f.get('room').trim()};if(!validMeeting(m)||!canReviewCourse(m.courseId)){notify('수업 시간과 과목을 확인해주세요.');return;}if(TimetableModel.meetings(data).some(v=>v.id!==m.id&&TimetableModel.overlaps(v,m))){notify('이미 등록된 수업 시간과 겹칩니다.');return;}if(save({...data,schedules:existing?data.schedules.map(v=>v.id===m.id?m:v):[...data.schedules,m]})){scheduleDialog.close();render();}};
   scheduleDialog.append(form);if(existing)scheduleDialog.append(button('이 수업 시간만 삭제',()=>{if(save({...data,schedules:data.schedules.filter(v=>v.id!==existing.id)})){scheduleDialog.close();render();}}));scheduleDialog.showModal();
 }
-const priorRenderCourses=renderCourses;
 const priorityStatus=el('p','course-priority-status');priorityStatus.id='course-priority-status';priorityStatus.setAttribute('role','status');$('#course-list').before(priorityStatus);
-renderCourses=function(container,query='',all=false){
-  const original=data,courses=all?getScheduleCourses():TimetableModel.evaluationCourses(data,selectedDate());data={...data,courses};try{priorRenderCourses(container,query,all);}finally{data=original;}
+function decorateTimetableCourses(container,courses,query='',all=false){
   if(!all){
     const visible=courses.filter(c=>`${c.title} ${c.professor} ${c.school}`.toLowerCase().includes(query.toLowerCase())),meetings=TimetableModel.meetingsOn(data,selectedDate());let count=0;
     container.querySelectorAll('.course-card').forEach((card,i)=>{const c=visible[i],times=meetings.filter(m=>m.courseId===c.id);if(!times.length)return;count++;card.classList.add('scheduled-course');card.querySelector('.card-top').after(el('p','scheduled-date',`${selectedDate()===today?'오늘 수업':'선택 날짜 수업'} · ${times.map(m=>`${m.start}–${m.end}`).join(', ')}`));});
@@ -92,6 +87,4 @@ function renderTimetable(){
   versionSelect.replaceChildren();for(const t of data.timetables){const o=el('option','',timetableLabel(t));o.value=t.id;versionSelect.append(o);}versionSelect.value=data.activeTimetableId;$('#courses-page .section-heading h2').textContent=timetableLabel();
   todayVersion.replaceChildren(el('strong','',timetableLabel()));const switcher=versionSelect.cloneNode(true);switcher.setAttribute('aria-label','평가할 시간표 선택');switcher.value=data.activeTimetableId;switcher.onchange=()=>changeVersion(switcher.value);todayVersion.append(switcher,el('small','academic-week',AcademicWeek.label(today,AcademicWeek.start(activeTimetable()))+' · 선택한 시간표의 과목만 평가할 수 있어요.'));$('#course-count').replaceChildren(document.createTextNode(getScheduleCourses().length),el('small','','개'));$('#class-count').textContent=getScheduleCourses().length;
 }
-const beforeTimetableRender=render;render=function(){beforeTimetableRender();renderTimetable();};
-const beforeLayoutRoute=route;route=function(){if(location.hash==='#community')history.replaceState(null,'','#today');pages.courses=['내 시간표',`${activeTimetable().year}년 ${terms[activeTimetable().term]} 시간표`,`${activeTimetable().name} · 학기와 버전별로 나의 수업을 구성하세요.`];beforeLayoutRoute();$('.hero').hidden=['#today','#history','#courses',''].includes(location.hash);$('.date-card').hidden=location.hash==='#courses';};
-window.removeEventListener('hashchange',beforeLayoutRoute);window.addEventListener('hashchange',route);$('#history-order').onchange=renderHistory;render();route();
+$('#history-order').onchange=renderHistory;render();route();

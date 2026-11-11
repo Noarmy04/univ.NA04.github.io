@@ -11,7 +11,7 @@ Edge Function `everytime-import`는 JWT 검증을 켠 상태로 운영합니다.
 
 ## 운영 동작
 
-토론 그룹 변경은 group_discussions_by_offering.sql → canonical_discussion_times.sql 순서로 적용했습니다. discussion_helpers.sql은 현재 정규화·분반 비교 함수의 소스입니다.
+토론 그룹 변경은 group_discussions_by_offering.sql → canonical_discussion_times.sql 순서로 적용했습니다. canonical_discussion_times.sql이 정규화·분반 비교 함수의 기준 소스입니다.
 평가의 course.offering에 학기·수업번호·주간 시간이 들어갑니다. 시간이 있으면 같은 주간 시간표를 기준으로 묶고, 시간이 없을 때만 수업번호를 사용합니다. 날짜나 평가 세션은 토론방 구분에 사용하지 않습니다.
 sync_offerings는 인증된 본인의 client_id에 해당하는 평가만 기존 시간표와 연결합니다. 처음 게시하는 평가는 시간표 정보를 함께 저장하며, 이전 비공개 평가는 이 작업으로 자동 게시하지 않습니다.
 메시지는 기존 review_id와 내용 그대로 보존하고, 조회 때 같은 토론 그룹에 연결된 평가의 메시지를 모읍니다. 익명 별명도 그룹 안에서 일관되게 표시합니다. 토론 열람·전송의 참여 제한은 같은 그룹의 본인 평가 존재 여부를 확인합니다.
