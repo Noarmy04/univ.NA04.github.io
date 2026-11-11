@@ -1,0 +1,40 @@
+begin;
+create temp table final_qa(result jsonb);
+do $test$
+declare u uuid:=gen_random_uuid(); v uuid:=gen_random_uuid(); c jsonb; r jsonb; x jsonb; p jsonb; today date:=(now() at time zone 'Asia/Seoul')::date;
+begin
+  insert into auth.users(id,is_anonymous) values(u,true),(v,true);
+  c:=jsonb_build_object('school','final QA','title','final QA','professor','QA','offering',jsonb_build_object('year',2026,'term','2','number','finalQA','meetings',jsonb_build_array(jsonb_build_object('day',extract(isodow from today)::int-1,'start','09:00','end','11:00'))));
+  r:=jsonb_build_object('date',today::text,'session','최종평가','comment','공개 한줄평 <script>text only</script>','overall',5,'understanding',4,'delivery',5,'structure',4);
+  p:=jsonb_build_object('schema','univ-na04/v2','kind','review','course',c,'review',r);
+  perform set_config('request.jwt.claim.sub','',true);x:=public.na04_api('final_review',jsonb_build_object('course',c,'review',r,'noticeAccepted',true));if not x?'error' then raise exception 'unauthenticated final write'; end if;
+  perform set_config('request.jwt.claim.sub',u::text,true);
+  x:=public.na04_api('final_status',jsonb_build_object('course',c));if x->>'canSubmit'<>'false' then raise exception 'early final enabled'; end if;
+  x:=public.na04_api('final_review',jsonb_build_object('course',c,'review',r,'noticeAccepted',true));if not x?'error' then raise exception 'early final accepted'; end if;
+  -- Simulated semester end only inside this rollback transaction.
+  update na04_private.academic_terms set ends_on=today where year=2026 and term='2';
+  x:=public.na04_api('final_status',jsonb_build_object('course',c));if x->>'canSubmit'<>'true' or x->>'lastDate'<>today::text then raise exception 'last class unavailable %',x; end if;
+  x:=public.na04_api('final_review',jsonb_build_object('course',c,'review',r,'noticeAccepted',false));if not x?'error' then raise exception 'notice bypass'; end if;
+  insert into na04_private.reviews(uid,client_id,payload) values(u,gen_random_uuid(),p);
+  x:=public.na04_api('ratings',jsonb_build_object('courses',jsonb_build_array(c)));if x->'ratings'->0->>'count'<>'0' then raise exception 'daily review counted as final'; end if;
+  x:=public.na04_api('final_review',jsonb_build_object('course',c,'review',r,'noticeAccepted',true));if x->>'ok'<>'true' then raise exception 'final save failed %',x; end if;
+  update na04_private.members set last_post=now()-interval '10 seconds' where uid=u;
+  x:=public.na04_api('final_review',jsonb_build_object('course',c,'review',jsonb_set(r,'{overall}','3'),'noticeAccepted',true));if x->>'ok'<>'true' then raise exception 'final edit failed'; end if;
+  if (select count(*) from na04_private.final_reviews where uid=u)<>1 then raise exception 'duplicate final'; end if;
+  perform set_config('request.jwt.claim.sub',v::text,true);
+  x:=public.na04_api('final_review',jsonb_build_object('course',c,'review',r,'noticeAccepted',true));if x->>'ok'<>'true' then raise exception 'second final failed'; end if;
+  x:=public.na04_api('feed','{}');if x->>'locked'<>'true' then raise exception 'final unlocked daily feed'; end if;
+  x:=public.na04_api('eligibility',jsonb_build_object('reviewId',(select id from na04_private.reviews where uid=u limit 1)));if x->>'canParticipate'<>'false' then raise exception 'final unlocked chat'; end if;
+  perform set_config('request.jwt.claim.sub','',true);
+  x:=public.na04_api('ratings',jsonb_build_object('courses',jsonb_build_array(c)));if x->'ratings'->0->>'count'<>'2' or x->'ratings'->0->>'average'<>'4.0' or jsonb_array_length(x->'ratings'->0->'comments')<>2 then raise exception 'public final aggregation failed %',x; end if;
+  if x::text like '%uid%' or x::text like '%room_id%' then raise exception 'private identifiers exposed'; end if;
+  perform set_config('request.jwt.claim.sub',u::text,true);
+  update na04_private.academic_terms set ends_on=today-1 where year=2026 and term='2';
+  x:=public.na04_api('final_review',jsonb_build_object('course',c,'review',r,'noticeAccepted',true));if not x?'error' then raise exception 'expired final editable'; end if;
+  if has_table_privilege('anon','na04_private.final_reviews','SELECT') or has_table_privilege('authenticated','na04_private.final_reviews','INSERT') or has_function_privilege('authenticated','na04_private.final_review_api(text,jsonb)','execute') then raise exception 'direct access exposed'; end if;
+  if na04_private.final_class_date('{"meetings":[{"day":3}]}'::jsonb,'2026-12-21')<>'2026-12-17'::date or na04_private.final_class_date('{"meetings":[]}'::jsonb,'2026-12-21') is not null then raise exception 'last class calculation failed'; end if;
+  insert into final_qa values('{"earlyAndExpiredBlocked":true,"noticeRequired":true,"oneFinalPerStudentSection":true,"publicFinalAverageAndComments":true,"dailyExcluded":true,"chatGatePreserved":true,"privateTables":true,"lastDateCorrect":true}');
+end;
+$test$;
+select result from final_qa;
+rollback;

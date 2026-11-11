@@ -67,3 +67,5 @@ body:has(#discussion-page:not([hidden])) .date-card small{margin-left:auto;font-
 .compact-content{min-width:0}.compact-metrics{display:block;margin-top:4px;font-size:11px;line-height:1.6;color:#596d5f;overflow-wrap:anywhere}
 
 .catalog-card .catalog-rating,.catalog-rating{font-size:13px;font-weight:700;color:var(--green);background:#edf3e8;border:1px solid #dce6d5;border-radius:7px;padding:9px 12px;line-height:1.6;margin:12px 0}.catalog-rating[data-state="locked"],.catalog-rating[data-state="empty"],.catalog-rating[data-state="unavailable"]{font-size:12px;font-weight:500;color:#61705f;background:#f6f7f1}.catalog-rating[data-state="error"]{color:#82513a;background:#fcf4ed}
+
+.final-comments{margin:8px 0 0;padding-left:18px;font-weight:400;font-size:13px;line-height:1.6;overflow-wrap:anywhere}.final-comments li+li{margin-top:4px}.final-review-button{margin-top:12px}.final-consent{display:flex;align-items:flex-start;gap:10px;margin:18px 0;font-size:14px}.final-consent input{width:auto;margin-top:4px}

@@ -9,6 +9,13 @@ window.AcademicWeek={
   matchesTerm(t,period){return !!t&&!!period&&t.year===period.year&&t.term===period.term;},
   allowsReview(r,t,period){return this.matchesTerm(r.offering||t,period)&&r.date>=period.startsOn&&r.date<=period.endsOn;},
   evaluationTimetable(state,period){const active=state.timetables?.find(t=>t.id===state.activeTimetableId),saved=state.timetables?.find(t=>t.id===state.evaluationTimetableId);return [active,saved,...(state.timetables||[])].find(t=>this.matchesTerm(t,period))||null;},
+  lastClass(offering,period){
+    if(!this.matchesTerm(offering,period)||!Array.isArray(offering.meetings)||!offering.meetings.length)return '';
+    const end=this.day(period.endsOn);if(end===null)return '';
+    const weekday=(new Date(end*86400000).getUTCDay()+6)%7;
+    const dates=offering.meetings.filter(m=>Number.isInteger(m.day)&&m.day>=0&&m.day<7).map(m=>end-(weekday-m.day+7)%7);
+    return dates.length?new Date(Math.max(...dates)*86400000).toISOString().slice(0,10):'';
+  },
   day(value){
     if(typeof value!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(value))return null;
     const n=Date.parse(value+'T00:00:00Z');

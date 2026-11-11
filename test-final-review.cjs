@@ -1,0 +1,10 @@
+const assert=require('node:assert/strict');global.window=global;require('./academic-week.js');
+const t=AcademicWeek.terms[1],o={year:2026,term:'2',meetings:[{day:3}]};
+assert.equal(AcademicWeek.lastClass(o,t),'2026-12-17');
+assert.equal(AcademicWeek.lastClass({...o,meetings:[{day:1},{day:3}]},t),'2026-12-17');
+assert.equal(AcademicWeek.lastClass({...o,meetings:[{day:0}]},t),'2026-12-21');
+assert.equal(AcademicWeek.lastClass({...o,meetings:[{day:6}]},t),'2026-12-20');
+assert.equal(AcademicWeek.lastClass({...o,meetings:[]},t),'');
+assert.equal(AcademicWeek.lastClass({...o,year:2025},t),'');
+assert.equal(AcademicWeek.lastClass(o,null),'');
+console.log('Final class dates passed: weekdays, multiple meetings, Sunday, missing dates and mismatched semesters.');
