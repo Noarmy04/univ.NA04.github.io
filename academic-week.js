@@ -3,6 +3,12 @@
 // https://econ.hanyang.ac.kr/sub/sub05_01.php?boardid=notice&idx=940&mNum=5&mode=view&sNum=1
 window.AcademicWeek={
   defaults:{'2026-1':'2026-03-03','2026-2':'2026-09-01'},
+  // Offline fallback only; the server calendar is authoritative when connected.
+  terms:[{year:2026,term:'1',startsOn:'2026-03-03',endsOn:'2026-06-22'},{year:2026,term:'2',startsOn:'2026-09-01',endsOn:'2026-12-21'}],
+  currentTerm(date){return this.terms.find(t=>date>=t.startsOn&&date<=t.endsOn)||null;},
+  matchesTerm(t,period){return !!t&&!!period&&t.year===period.year&&t.term===period.term;},
+  allowsReview(r,t,period){return this.matchesTerm(r.offering||t,period)&&r.date>=period.startsOn&&r.date<=period.endsOn;},
+  evaluationTimetable(state,period){const active=state.timetables?.find(t=>t.id===state.activeTimetableId),saved=state.timetables?.find(t=>t.id===state.evaluationTimetableId);return [active,saved,...(state.timetables||[])].find(t=>this.matchesTerm(t,period))||null;},
   day(value){
     if(typeof value!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(value))return null;
     const n=Date.parse(value+'T00:00:00Z');

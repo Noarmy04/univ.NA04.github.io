@@ -1,0 +1,32 @@
+begin;
+create temp table current_term_qa(result jsonb);
+do $test$
+declare u uuid:=gen_random_uuid(); current_client uuid:=gen_random_uuid(); old_client uuid:=gen_random_uuid(); old_id uuid; p jsonb; historical jsonb; x jsonb; period jsonb; original jsonb;
+begin
+  insert into auth.users(id,is_anonymous) values(u,true);
+  perform set_config('request.jwt.claim.sub',u::text,true);
+  x:=public.na04_api('calendar','{}');period:=x->'term';
+  if period->>'year'<>'2026' or period->>'term'<>'2' or x->>'today'<>to_char((now() at time zone 'Asia/Seoul')::date,'YYYY-MM-DD') then raise exception 'calendar response incorrect %',x; end if;
+  p:='{"schema":"univ-na04/v2","kind":"review","course":{"school":"term QA","title":"term QA","professor":"QA","offering":{"year":2026,"term":"2","number":"111","meetings":[{"day":1,"start":"09:00","end":"11:00"}]}},"review":{"date":"2026-11-10","session":"QA","comment":"QA","overall":4,"understanding":4,"delivery":4,"structure":4}}';
+  historical:=jsonb_set(jsonb_set(p,'{course,offering,term}','"1"'),'{review,date}','"2026-06-01"');
+  x:=public.na04_api('review',jsonb_build_object('clientId',gen_random_uuid(),'payload',historical));if not x?'error' then raise exception 'new historical review allowed'; end if;
+  x:=public.na04_api('review',jsonb_build_object('clientId',gen_random_uuid(),'payload',jsonb_set(p,'{review,date}','"2026-06-01"')));if not x?'error' then raise exception 'current offering with historical date allowed'; end if;
+  x:=public.na04_api('review',jsonb_build_object('clientId',gen_random_uuid(),'payload',jsonb_set(p,'{course,offering,year}','2027')));if not x?'error' then raise exception 'future academic year allowed'; end if;
+  x:=public.na04_api('review',jsonb_build_object('clientId',current_client,'payload',p));if not x?'id' then raise exception 'current review denied %',x; end if;
+  update na04_private.members set last_post=null where uid=u;
+  x:=public.na04_api('review',jsonb_build_object('clientId',current_client,'payload',jsonb_set(p,'{review,overall}','5')));if not x?'id' then raise exception 'current review edit denied %',x; end if;
+  insert into na04_private.reviews(uid,client_id,payload) values(u,old_client,historical) returning id into old_id;
+  x:=public.na04_api('review',jsonb_build_object('clientId',old_client,'payload',historical));if not x?'error' then raise exception 'historical edit allowed'; end if;
+  x:=public.na04_api('review',jsonb_build_object('clientId',old_client,'payload',p));if not x?'error' then raise exception 'historical review converted to current via upsert'; end if;
+  x:=public.na04_api('sync_offerings',jsonb_build_object('bindings',jsonb_build_array(jsonb_build_object('clientId',old_client,'offering',p->'course'->'offering'))));
+  if x->>'synced' is distinct from '0' or (select payload from na04_private.reviews where id=old_id) is distinct from historical then raise exception 'sync changed historical review %',x; end if;
+  x:=public.na04_api('feed','{}');if not exists(select 1 from jsonb_array_elements(x) r where r->>'id'=old_id::text) then raise exception 'historical review disappeared from read-only feed'; end if;
+  if has_function_privilege('authenticated','na04_private.na04_api_core(text,jsonb)','EXECUTE') or has_function_privilege('anon','na04_private.na04_api_core(text,jsonb)','EXECUTE') then raise exception 'core API can bypass gateway'; end if;
+  delete from na04_private.academic_terms where year=2026 and term='2';
+  x:=public.na04_api('review',jsonb_build_object('clientId',gen_random_uuid(),'payload',p));if not x?'error' then raise exception 'missing active calendar allowed write'; end if;
+  insert into na04_private.academic_terms values(2026,'2','2026-09-01','2026-12-21');
+  insert into current_term_qa values('{"newCurrentAllowed":true,"currentEditAllowed":true,"historicalNewBlocked":true,"historicalEditBlocked":true,"historicalUpsertBlocked":true,"historicalSyncBlocked":true,"historicalReadPreserved":true,"coreBypassBlocked":true,"missingCalendarFailClosed":true}');
+end;
+$test$;
+select result from current_term_qa;
+rollback;

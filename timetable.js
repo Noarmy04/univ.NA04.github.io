@@ -8,6 +8,11 @@ function validMeeting(m){return Number.isInteger(m.day)&&m.day>=0&&m.day<7&&/^\d
 function activeTimetable(){return TimetableModel.active(data);}
 function timetableLabel(t=activeTimetable()){return `${t.year}년 ${terms[t.term]} · ${t.name}`;}
 function getScheduleCourses(){return TimetableModel.courses(data);}
+function evaluationTimetable(){return AcademicWeek.evaluationTimetable(data,currentEvaluationTerm());}
+function evaluationState(){const t=evaluationTimetable();return t?{...data,activeTimetableId:t.id}:null;}
+function getEvaluationCourses(){const state=evaluationState();return state?TimetableModel.evaluationCourses(state,selectedDate()):[];}
+function openTodayReview(id){const t=evaluationTimetable();if(!t){notify(evaluationProblem());return;}if(data.activeTimetableId!==t.id)changeVersion(t.id);openReview(id);}
+function openTodayCourse(){const period=currentEvaluationTerm();if(!period){notify('현재 평가 가능한 학기 정보가 없습니다.');return;}let t=evaluationTimetable();if(!t){t={id:crypto.randomUUID(),year:period.year,term:period.term,name:'기본 시간표',courseIds:[]};if(!save({...data,timetables:[...data.timetables,t]}))return;}changeVersion(t.id);openCatalog();}
 function canReviewCourse(id){return getScheduleCourses().some(c=>c.id===id);}
 const timetableHost=el('div','timetable-host');$('#all-courses').before(timetableHost);
 const scheduleDialog=el('dialog');scheduleDialog.id='schedule-dialog';document.body.append(scheduleDialog);
@@ -17,7 +22,7 @@ const tools=el('div','actions timetable-tools'),versionSelect=el('select'),versi
 const todayVersion=el('div','active-version');$('#today-page .filter-row').before(todayVersion);
 const courseListTitle=el('h2','subheading','이 시간표의 과목');$('#all-courses').before(courseListTitle);
 $('#courses-page .section-heading p').textContent='학기와 버전을 선택하고 수업을 구성하세요. 이 시간표의 과목만 평가할 수 있어요.';
-function changeVersion(id){if(save({...data,activeTimetableId:id})){render();route();}}
+function changeVersion(id){const t=data.timetables.find(t=>t.id===id),evaluationTimetableId=AcademicWeek.matchesTerm(t,currentEvaluationTerm())?id:data.evaluationTimetableId;if(save({...data,activeTimetableId:id,evaluationTimetableId})){render();route();}}
 versionSelect.onchange=()=>changeVersion(versionSelect.value);
 function openVersion(existing=null){
   headingDialog(versionDialog,existing?'시간표 정보 수정':'새 학기·버전 만들기','시간표마다 과목과 수업 시간이 따로 저장됩니다.');
@@ -71,12 +76,12 @@ function openSchedule(existing=null,day=0,start='09:00',preferredId=null){
 const priorityStatus=el('p','course-priority-status');priorityStatus.id='course-priority-status';priorityStatus.setAttribute('role','status');$('#course-list').before(priorityStatus);
 function decorateTimetableCourses(container,courses,query='',all=false){
   if(!all){
-    const visible=courses.filter(c=>`${c.title} ${c.professor} ${c.school}`.toLowerCase().includes(query.toLowerCase())),meetings=TimetableModel.meetingsOn(data,selectedDate());let count=0;
-    container.querySelectorAll('.course-card').forEach((card,i)=>{const c=visible[i],times=meetings.filter(m=>m.courseId===c.id);if(!times.length)return;count++;card.classList.add('scheduled-course');card.querySelector('.card-top').after(el('p','scheduled-date',`${selectedDate()===today?'오늘 수업':'선택 날짜 수업'} · ${times.map(m=>`${m.start}–${m.end}`).join(', ')}`));});
+    const visible=courses.filter(c=>`${c.title} ${c.professor} ${c.school}`.toLowerCase().includes(query.toLowerCase())),meetings=evaluationState()?TimetableModel.meetingsOn(evaluationState(),selectedDate()):[];let count=0;
+    container.querySelectorAll('.course-card').forEach((card,i)=>{const c=visible[i],times=meetings.filter(m=>m.courseId===c.id);if(!times.length)return;count++;card.classList.add('scheduled-course');card.querySelector('.card-top').after(el('p','scheduled-date',`오늘 수업 · ${times.map(m=>`${m.start}–${m.end}`).join(', ')}`));});
     const date=new Date(selectedDate()+'T12:00:00').toLocaleDateString('ko-KR',{month:'long',day:'numeric',weekday:'short'});
-    priorityStatus.textContent=count?`${date} 수업 ${count}개를 시작 시간순으로 먼저 보여드려요.`:courses.length?(query?'검색 결과에 선택한 날짜의 수업이 없어요.':'선택한 날짜에 예정된 수업이 없어요. 시간표의 다른 과목도 평가할 수 있어요.'):'';
+    priorityStatus.textContent=count?`${date} 수업 ${count}개를 시작 시간순으로 먼저 보여드려요.`:courses.length?(query?'검색 결과에 오늘 수업이 없어요.':'오늘 예정된 수업이 없어요. 현재 학기의 다른 과목도 평가할 수 있어요.'):'';
   }
-  if(!courses.length){container.replaceChildren();empty(container,'이 시간표에 과목이 없어요','개설 강좌에서 과목을 선택해 시간표를 구성해주세요.',true);}
+  if(!courses.length){container.replaceChildren();empty(container,all?'이 시간표에 과목이 없어요':'현재 학기 시간표에 과목이 없어요',all?'개설 강좌에서 과목을 선택해 시간표를 구성해주세요.':'내 시간표에서 현재 학기 시간표를 만들어주세요.',true);}
   if(all)container.querySelectorAll('.course-card').forEach((card,i)=>{const c=courses[i],locations=TimetableModel.meetings(data).filter(m=>m.courseId===c.id);card.append(el('p','course-summary',locations.length?locations.map(m=>`${days[m.day]} ${m.start}–${m.end} · ${m.room||'강의실 미지정'}`).join('\n'):'수업 시간 미등록'),button('＋ 수업 시간 추가',()=>openSchedule(null,0,'09:00',c.id)),button('시간표에서 과목 빼기',()=>{const t=activeTimetable();if(save({...data,timetables:data.timetables.map(v=>v.id===t.id?{...v,courseIds:v.courseIds.filter(id=>id!==c.id)}:v),schedules:data.schedules.filter(m=>m.timetableId!==t.id||m.courseId!==c.id)})){render();notify('시간표에서 뺐어요. 평가 기록은 보관됩니다.');}}));});
 };
 function renderTimetable(){
@@ -85,6 +90,6 @@ function renderTimetable(){
   for(let row=0;row<rows;row+=6){if(row%12===0){const label=el('div','time-label',String(startHour+row/12).padStart(2,'0')+':00');label.style.gridRow=`${row+2} / span 12`;label.style.gridColumn=1;grid.append(label);}for(let day=0;day<dayCount;day++){const start=`${String(startHour+Math.floor(row/12)).padStart(2,'0')}:${row%12?'30':'00'}`,cell=button('',()=>openSchedule(null,day,start),'time-cell');cell.setAttribute('aria-label',`${days[day]}요일 ${start} 수업 시간 추가`);cell.style.gridColumn=day+2;cell.style.gridRow=`${row+2} / span 6`;grid.append(cell);}}
   schedules.forEach(m=>{const c=data.courses.find(c=>c.id===m.courseId),block=button('',()=>openSchedule(m),'class-block');block.style.gridColumn=m.day+2;block.style.gridRow=`${(minutes(m.start)-startHour*60)/5+2} / span ${(minutes(m.end)-minutes(m.start))/5}`;block.style.background=colors[getScheduleCourses().indexOf(c)%colors.length];block.append(el('strong','',c.title),el('small','',`${c.professor} 교수님`),el('span','',m.room||'강의실 미등록'),el('small','',`${m.start}–${m.end}`));block.title=`${c.title} · ${c.professor} 교수님 · ${m.room||'강의실 미등록'} · ${m.start}–${m.end}`;block.classList.toggle('short-class',minutes(m.end)-minutes(m.start)<=60);block.setAttribute('aria-label',`${c.title} ${days[m.day]}요일 ${m.start}부터 ${m.end} ${m.room||''} 수정`);grid.append(block);});timetableHost.append(grid);courseListTitle.hidden=!getScheduleCourses().length;$('#all-courses').hidden=!getScheduleCourses().length;
   versionSelect.replaceChildren();for(const t of data.timetables){const o=el('option','',timetableLabel(t));o.value=t.id;versionSelect.append(o);}versionSelect.value=data.activeTimetableId;$('#courses-page .section-heading h2').textContent=timetableLabel();
-  todayVersion.replaceChildren(el('strong','',timetableLabel()));const switcher=versionSelect.cloneNode(true);switcher.setAttribute('aria-label','평가할 시간표 선택');switcher.value=data.activeTimetableId;switcher.onchange=()=>changeVersion(switcher.value);todayVersion.append(switcher,el('small','academic-week',AcademicWeek.label(today,AcademicWeek.start(activeTimetable()))+' · 선택한 시간표의 과목만 평가할 수 있어요.'));$('#course-count').replaceChildren(document.createTextNode(getScheduleCourses().length),el('small','','개'));$('#class-count').textContent=getScheduleCourses().length;
+  const current=evaluationTimetable(),period=currentEvaluationTerm();todayVersion.replaceChildren(el('strong','',current?timetableLabel(current):period?`${period.year}년 ${terms[period.term]} · 시간표 미등록`:'현재 평가 가능한 학기 없음'),el('small','academic-week',current?AcademicWeek.label(selectedDate(),AcademicWeek.start(current))+' · 현재 학기 과목만 평가할 수 있어요.':'내 시간표에서 현재 학기 시간표를 등록해주세요.'));const count=getEvaluationCourses().length;$('#course-count').replaceChildren(document.createTextNode(count),el('small','','개'));$('#class-count').textContent=count;
 }
 $('#history-order').onchange=renderHistory;render();route();

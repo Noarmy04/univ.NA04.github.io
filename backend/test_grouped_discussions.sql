@@ -28,7 +28,7 @@ if x->>'synced' is distinct from '0' then raise exception 'another user offering
 perform set_config('request.jwt.claim.sub',a::text,true);
 x:=public.na04_api('messages',jsonb_build_object('reviewId',r2));if jsonb_array_length(x)<>2 then raise exception 'messages not preserved';end if;
 update na04_private.members set last_post=null where uid=a;
-x:=public.na04_api('review',jsonb_build_object('clientId',legacy_client,'payload',p #- '{course,offering}'));legacy_review:=(x->>'id')::uuid;
+insert into na04_private.reviews(uid,client_id,payload) values(a,legacy_client,p #- '{course,offering}') returning id into legacy_review;
 x:=public.na04_api('sync_offerings',jsonb_build_object('bindings',jsonb_build_array(jsonb_build_object('clientId',legacy_client,'offering',p->'course'->'offering'))));
 if x->>'synced' is distinct from '1' then raise exception 'own legacy offering not synchronized %',x;end if;
 x:=public.na04_api('messages',jsonb_build_object('reviewId',legacy_review));if jsonb_array_length(x)<>2 then raise exception 'legacy messages not merged';end if;

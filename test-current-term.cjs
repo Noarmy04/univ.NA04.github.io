@@ -1,0 +1,6 @@
+const assert=require('node:assert/strict');global.window=global;require('./academic-week.js');const P=AcademicWeek;
+const period=P.currentTerm('2026-11-11');assert.equal(period.term,'2');assert.equal(P.currentTerm('2026-09-01').term,'2');assert.equal(P.currentTerm('2026-12-21').term,'2');assert.equal(P.currentTerm('2026-12-22'),null);assert.equal(P.currentTerm('2027-03-03'),null);
+const old={id:'old',year:2026,term:'1'},current={id:'now',year:2026,term:'2'},alternative={id:'alt',year:2026,term:'2'};
+const state={timetables:[old,current,alternative],activeTimetableId:'old',evaluationTimetableId:'alt'};assert.equal(P.evaluationTimetable(state,period).id,'alt');state.activeTimetableId='now';assert.equal(P.evaluationTimetable(state,period).id,'now');state.timetables=[old];assert.equal(P.evaluationTimetable(state,period),null);
+assert(P.allowsReview({date:'2026-11-10'},current,period));assert(!P.allowsReview({date:'2026-06-01'},old,period));assert(!P.allowsReview({date:'2026-06-01'},current,period));assert(!P.allowsReview({date:'2026-11-10',offering:old},current,period));assert(!P.allowsReview({date:'2026-11-10'},current,null));
+console.log('Current-term checks passed: calendar boundaries, current timetable selection, missing calendar and historical review blocks.');
