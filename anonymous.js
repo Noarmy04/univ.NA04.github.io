@@ -11,6 +11,7 @@ if(window.NA04_BACKEND?.url&&window.NA04_BACKEND?.publishableKey){
     session={access_token:result.access_token,refresh_token:result.refresh_token,expires_at:Date.now()+result.expires_in*1000};localStorage.setItem(tokenKey,JSON.stringify(session));return session.access_token;
   }
   async function api(action,args={}){const token=await identity();const response=await fetch(config.url+'/rest/v1/rpc/na04_api',{method:'POST',headers:{apikey:config.publishableKey,Authorization:'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({action,args})});const result=await response.json();if(!response.ok||result?.error)throw Error(result?.error||'서버 연결에 실패했어요. 다시 시도해주세요.');return result;}
+  window.NA04LoadCourseRatings=courses=>api('ratings',{courses});
   window.NA04ImportEverytime=async function(url){const token=await identity();const response=await fetch(config.url+'/functions/v1/everytime-import',{method:'POST',headers:{apikey:config.publishableKey,Authorization:'Bearer '+token,'Content-Type':'application/json'},body:JSON.stringify({url}),signal:AbortSignal.timeout(20000)});const result=await response.json();if(!response.ok||result.error)throw Error(result.error||'시간표 연결에 실패했어요.');return result;};
   const chat=el('dialog');chat.className='wide-dialog';document.body.append(chat);let currentThread=null,accepted=localStorage.getItem('na04-chat-notice-v1')==='accepted';
   const discussionPage=el('section','page');discussionPage.id='discussion-page';discussionPage.hidden=true;
