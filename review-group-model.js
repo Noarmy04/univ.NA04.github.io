@@ -10,16 +10,17 @@
   }
   function groups(entries,week=''){
     const map=new Map();
-    for(const entry of entries){const meta=info(entry);if(week!==''&&meta.week!==Number(week))continue;
+    for(const entry of entries){try{if(root.ShareModel&&!root.ShareModel.valid(entry?.payload))continue;const meta=info(entry);if(week!==''&&meta.week!==Number(week))continue;
       if(!map.has(meta.key))map.set(meta.key,{...meta,course:entry.payload.course,entries:[]});
       map.get(meta.key).entries.push(entry);
+    }catch{/* A corrupt legacy record must not hide valid evaluations. */}
     }
     return [...map.values()];
   }
   function courses(entries,week=''){
     const map=new Map();
     for(const group of groups(entries,week)){
-      const key=root.DiscussionModel.key({course:group.course});
+      const key=root.DiscussionModel.key({course:{...group.course,offering:group.offering}});
       if(!map.has(key))map.set(key,{key,course:group.course,offering:group.offering,weeks:[],count:0});
       const course=map.get(key);course.weeks.push(group);course.count+=group.entries.length;
     }
