@@ -1,12 +1,9 @@
 -- Aggregate the whole offering, rather than the latest 100 feed records.
 create index if not exists reviews_room_id_idx on na04_private.reviews(room_id);
-create function na04_private.course_ratings(courses jsonb) returns jsonb
+create or replace function na04_private.course_ratings(courses jsonb) returns jsonb
 language plpgsql stable set search_path='' as $$
 declare item jsonb; k text; result jsonb;
 begin
-  if auth.uid() is null or not exists(select 1 from na04_private.reviews where uid=auth.uid() and na04_private.valid_review(payload)) then
-    return jsonb_build_object('locked',true,'ratings',jsonb_build_array());
-  end if;
   if jsonb_typeof(courses) is distinct from 'array' then return jsonb_build_object('error','강좌 목록을 확인해주세요.'); end if;
   if jsonb_array_length(courses)>60 or octet_length(courses::text)>200000 then return jsonb_build_object('error','한 번에 60개 강좌까지 조회할 수 있습니다.'); end if;
   for item in select value from jsonb_array_elements(courses) loop

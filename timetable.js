@@ -43,7 +43,6 @@ function loadCatalogRatings(courses,targets){
     if(!window.NA04LoadCourseRatings){show('평점 조회 서버가 연결되지 않았어요.','unavailable');return;}
     try{
       const result=await window.NA04LoadCourseRatings(courses.map(catalogRatingCourse));
-      if(result?.locked===true){show('평가 1개 등록 후 평점을 확인할 수 있어요.','locked');return;}
       if(!Array.isArray(result?.ratings)||result.ratings.length!==targets.length)throw Error('평점 응답 형식');
       for(const r of result.ratings)if(!Number.isSafeInteger(r.count)||r.count<0||(r.count>0&&(!Number.isFinite(r.average)||r.average<1||r.average>5)))throw Error('평점 응답 형식');
       result.ratings.forEach((r,i)=>{if(targets[i].isConnected){targets[i].textContent=r.count?`★ ${r.average.toFixed(1)} / 5 · 평가 ${r.count}개`:'아직 등록된 평가가 없어요.';targets[i].dataset.state=r.count?'rated':'empty';}});
