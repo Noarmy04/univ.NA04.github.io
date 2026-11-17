@@ -63,17 +63,17 @@ if(window.NA04_BACKEND?.url&&window.NA04_BACKEND?.publishableKey){
   sharedState.locked=true;
   loadShared=async function(){if(sharedState.busy)return;sharedState.busy=true;sharedState.error='';sharedState.locked=true;sharedState.records=[];renderShared();renderDiscussions();try{evaluationCalendar=await api('calendar',{});render();await syncOfferings();const response=await api('feed',{});if(response?.locked===true){sharedState.locked=true;}else if(Array.isArray(response)){sharedState.locked=false;sharedState.records=response.filter(x=>x&&typeof x.id==='string'&&ShareModel.valid(x.payload)).map(x=>({...x,author:'익명',number:x.id}));}else throw Error('공유 기록의 응답을 확인할 수 없어요.');sharedState.hasMore=false;}catch(e){sharedState.error=e.message;if(!evaluationCalendar){evaluationCalendar={today:dateKey(),term:null};render();}}finally{sharedState.busy=false;renderShared();renderDiscussions();}};
   $('#refresh-shared').onclick=loadShared;$('#more-shared').hidden=true;
-  $('#review-form .form-help:last-of-type').textContent='저장한 평가는 익명으로 공유되며, 평가를 등록한 사용자에게 공개됩니다. 개인정보를 입력하지 마세요.';
+  $('#review-form .form-help:last-of-type').textContent='저장한 평가는 익명으로 공유되며, 같은 분반의 일일 평가를 등록한 사용자에게 공개됩니다. 개인정보를 입력하지 마세요.';
   $('#review-form button[type=submit]').textContent='평가 저장 및 자동 공개';
-  $('#shared-feed .section-heading p').textContent='수업 평가를 1개 이상 등록하면 다른 학생의 익명 평가를 볼 수 있어요. 토론은 해당 과목 평가 후 참여할 수 있습니다.';
+  $('#shared-feed .section-heading p').textContent='직접 일일 평가를 등록한 수업의 같은 학기·교수·분반 평가만 볼 수 있어요. 토론은 해당 과목 평가 후 참여할 수 있습니다.';
   offerShare=()=>notify('새 평가는 저장하면 익명으로 자동 공개됩니다.');
-  const legacyDetail=openDetail;openDetail=function(id){legacyDetail(id);detail.querySelectorAll('button').forEach(b=>{if(b.textContent.includes('과목 정보 공유'))b.remove();});if(sharedState.locked)detail.append(el('p','feed-access-note','다른 학생의 평가는 본인의 수업 평가를 1개 이상 등록한 뒤 확인할 수 있어요.'));};
+  const legacyDetail=openDetail;openDetail=function(id){legacyDetail(id);detail.querySelectorAll('button').forEach(b=>{if(b.textContent.includes('과목 정보 공유'))b.remove();});if(sharedState.locked)detail.append(el('p','feed-access-note','다른 학생의 평가는 같은 학기·교수·분반의 일일 평가를 직접 등록한 뒤 확인할 수 있어요.'));};
   document.querySelector('.storage-badge').textContent='● 익명 자동 공개';
   prepareSharedFeed=function(){
     const list=$('#shared-list'),search=$('#shared-search');list.replaceChildren();search.disabled=sharedState.locked||sharedState.busy;sharedDate.disabled=sharedState.locked||sharedState.busy;clearSharedDate.disabled=sharedState.locked||sharedState.busy;$('#more-shared').hidden=true;$('#refresh-shared').disabled=sharedState.busy;
     if(sharedState.busy){$('#shared-status').textContent='평가 등록 여부를 확인하는 중…';return false;}
     if(sharedState.error){$('#shared-status').textContent=sharedState.error;empty(list,'평가 등록 여부를 확인하지 못했어요','잠시 후 새로고침해주세요. 다른 학생의 평가 내용은 표시하지 않습니다.');return false;}
-    if(sharedState.locked){$('#shared-status').textContent='평가를 1개 이상 등록한 사용자만 다른 학생의 평가를 볼 수 있습니다.';empty(list,'내 평가를 남기면 다른 학생들의 평가를 볼 수 있어요','오늘의 강의에서 수업 평가를 1개 이상 작성하고 공개 등록을 완료해주세요. 개인 저장만 했거나 게시 대기 중인 평가는 포함되지 않습니다.');list.querySelector('.empty').append(button('수업 평가하러 가기',()=>{location.hash='#today';$('#course-list').scrollIntoView({behavior:'smooth',block:'start'});},'primary'));return false;}
+    if(sharedState.locked){$('#shared-status').textContent='같은 학기·교수·분반의 일일 평가를 직접 등록한 수업만 열람할 수 있습니다.';empty(list,'해당 수업을 평가하면 같은 분반의 일일 평가를 볼 수 있어요','오늘의 강의에서 보고 싶은 수업의 일일 평가를 작성하고 공개 등록을 완료해주세요. 다른 수업·교수·시간대·학기의 평가나 최종평가로는 열람할 수 없습니다.');list.querySelector('.empty').append(button('수업 평가하러 가기',()=>{location.hash='#today';$('#course-list').scrollIntoView({behavior:'smooth',block:'start'});},'primary'));return false;}
     return true;
   }
   renderShared=function(){

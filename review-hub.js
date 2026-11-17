@@ -15,7 +15,7 @@ historyHeading.after(reviewTabs);reviewTabs.after(studentPanel,minePanel);
 minePanel.append($('#history-search').closest('label'),$('#history-order').closest('label'),$('#history-list'));
 studentPanel.append($('#shared-feed'));
 $('#shared-feed h2').textContent='학생들의 일일 평가';
-$('#shared-feed .section-heading p').textContent='각 수업의 평점과 한줄평을 확인하세요. 본인의 평가를 1개 이상 등록하면 볼 수 있습니다.';
+$('#shared-feed .section-heading p').textContent='각 수업의 평점과 한줄평을 확인하세요. 같은 학기·교수·분반의 일일 평가를 직접 등록한 수업만 볼 수 있습니다.';
 const studentOrder=$('#history-order').cloneNode(true);studentOrder.id='student-review-order';studentOrder.setAttribute('aria-label','학생 평가 정렬');studentOrder.onchange=()=>renderShared();const studentOrderLabel=el('label','history-order','평가 정렬 ');studentOrderLabel.append(studentOrder);$('#shared-status').before(studentOrderLabel);
 const beforeHubFilter=filteredSharedRecords;filteredSharedRecords=function(){return beforeHubFilter().filter(e=>e.payload.kind==='review'&&e.payload.review).sort((a,b)=>{const date=a.payload.review.date.localeCompare(b.payload.review.date),score=a.payload.review.overall-b.payload.review.overall;return studentOrder.value==='highest'?-score||-date:studentOrder.value==='lowest'?score||-date:studentOrder.value==='oldest'?date:-date;});};
 function selectReviewPanel(key){for(const [name,panel] of Object.entries(panels)){panel.hidden=name!==key;reviewTabButtons[name].setAttribute('aria-selected',String(name===key));reviewTabButtons[name].tabIndex=name===key?0:-1;}$('#export').hidden=key!=='mine';}
