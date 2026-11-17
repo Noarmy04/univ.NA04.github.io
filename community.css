@@ -78,3 +78,5 @@ body:has(#discussion-page:not([hidden])) .date-card small{margin-left:auto;font-
 #all-courses .card-bottom .final-review-button{margin:0;padding:11px 17px;border:1px solid var(--line);border-radius:7px;background:#edf3eb;color:var(--green)}.daily-review-actions{margin-top:10px}.daily-review-actions .daily-review-button{display:block;width:100%;padding:12px 17px;border:1px solid var(--line);border-radius:7px;background:white;color:var(--green)}
 
 #schedule-dialog > button.secondary + button.secondary{margin-left:16px}
+
+#review-week{margin:0 0 18px;padding:12px 14px;border:1px solid #dce6d5;border-radius:8px;background:#edf3e8;font-size:15px;line-height:1.6;overflow-wrap:anywhere}

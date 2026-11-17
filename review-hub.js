@@ -30,7 +30,7 @@ const beforeHubSharedCard=sharedCard;sharedCard=function(entry){const card=befor
 const beforeHubReviewCard=reviewCard;reviewCard=function(r,c,entry=null){const card=labelReview(beforeHubReviewCard(r,c,entry),r);const week=el('p','academic-week',AcademicWeek.label(r.date,AcademicWeek.reviewStart(r,c,data)));const start=AcademicWeek.reviewStart(r,c,data);if(start)week.title='주차 기준일: '+start;card.querySelector('.score')?.before(week);return card;};
 selectReviewPanel('students');renderHistory();renderShared();
 
-$('#review-date').addEventListener('input',()=>{$('#review-week').textContent=AcademicWeek.label($('#review-date').value,AcademicWeek.start(activeTimetable()));});
+$('#review-date').addEventListener('input',updateReviewDateSummary);
 
 const reviewWeekLabel=el('label','date-filter','수업 주차 '),reviewWeek=el('input');
 reviewWeek.type='number';reviewWeek.min='1';reviewWeek.step='1';reviewWeek.placeholder='예: 11';reviewWeek.id='shared-week';reviewWeek.setAttribute('aria-label','학생 평가 수업 주차');reviewWeekLabel.append(reviewWeek);
