@@ -6,13 +6,17 @@ function appendFinalReviewAction(card,course,all){
   const period=AcademicWeek.terms.find(p=>AcademicWeek.matchesTerm(t,p));
   const last=AcademicWeek.lastClass(DiscussionModel.offering({...data,activeTimetableId:t.id},course),period);
   if(last)action.title=`마지막 정규 수업일 ${last} · 작성 가능 여부는 서버에서 확인합니다.`;
-  card.append(action);
+  if(all){
+    const bottom=card.querySelector('.card-bottom'),daily=bottom.querySelector('button');
+    daily.textContent=daily.textContent.includes('수정')?'일일 평가 수정':'일일 평가하기';daily.className='secondary daily-review-button';
+    const dailyActions=el('div','daily-review-actions');dailyActions.append(daily);card.append(dailyActions);bottom.append(action);
+  }else card.append(action);
 }
 async function openFinalReview(course,timetable){
   const state={...data,activeTimetableId:timetable.id};
   const publicCourse={school:course.school,title:course.title,professor:course.professor,offering:DiscussionModel.offering(state,course)};
   headingDialog(finalDialog,`${course.title} · 최종평가`,`${timetableLabel(timetable)} · ${course.professor} 교수님`);
-  const notice=el('div','chat-warning');notice.append(el('strong','','다음 수강생에게 공개되는 평가입니다.'),el('p','','이 최종평가의 평점과 한줄평은 이 수업을 수강하려는 학생 누구나 수업 추가 화면에서 확인할 수 있습니다. 한 학기 전체의 수업 경험을 바탕으로 최대한 객관적인 시선으로 평가해주세요. 구체적인 근거를 적고 개인정보나 인신공격은 피해주세요.'));
+  const notice=el('div','chat-warning');notice.append(el('strong','','한 학기 전체에 대한 최종평가입니다.'),el('p','','마지막 주차의 일일 평가와 별도로 저장됩니다. 이 최종평가의 평점과 한줄평은 이 수업을 수강하려는 학생 누구나 수업 추가 화면에서 확인할 수 있습니다. 한 학기 전체의 수업 경험을 바탕으로 최대한 객관적인 시선으로 평가해주세요. 구체적인 근거를 적고 개인정보나 인신공격은 피해주세요.'));
   const status=el('p','form-help','마지막 수업일과 최종평가 작성 기간을 확인하는 중…');status.setAttribute('role','status');finalDialog.append(notice,status);finalDialog.showModal();
   if(!window.NA04FinalReview){status.textContent='서버 연결 후 최종평가를 작성할 수 있어요.';return;}
   try{
