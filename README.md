@@ -9,7 +9,7 @@
 
 ### 오늘의 강의
 
-- 오늘의 강의에는 현재 학기의 시간표 과목만 표시합니다. 시간표 선택창 없이 학기·버전·주차를 표시하며 버전 관리는 내 시간표에서 합니다.
+- 오늘의 강의에는 현재 학기의 시간표 과목만 표시합니다. 시간표 선택창 없이 학기·버전 이름을 표시하며 버전 관리는 내 시간표에서 합니다.
 - 새 평가 작성과 수정은 현재 학기 및 해당 학기 수업 날짜에만 허용합니다. 지난 학기 평가는 조회만 가능하며 서버에서도 수정·재게시를 차단합니다.
 - 오늘 수업이 있는 과목을 시작 시간순으로 먼저 표시합니다.
 - 실제 수업 날짜와 세션을 지정하고 전체 만족도·이해도·전달력·수업 구성을 1~5점으로 평가합니다.
@@ -122,7 +122,9 @@ HTML·CSS·JavaScript로 구성된 정적 사이트이며, 익명 평가·대화
 | `everytime-model.js`, `everytime-import.js` | 에타 링크 가져오기 |
 | `review-reset.js` | 기존 평가 초기화 |
 | `page-help.js` | 화면별 이용 안내 |
-| `backend/` | 서버 구성·권한·검증 자료 |
+| `backend/migrations/` | 순서대로 적용하는 서버 변경 이력 |
+| `backend/tests/` | 서버 권한·데이터 검증용 롤백 SQL |
+| `tests/` | 프런트엔드 모델 회귀 테스트 |
 | `.github/workflows/pages.yml` | GitHub Pages 자동 배포 |
 
 서버 구성과 제한 사항은 [backend/README.md](backend/README.md)를 참고하세요. `anonymous-config.js`에는 공개용 프로젝트 URL과 publishable key만 사용합니다. 관리자 키와 비밀번호는 프런트엔드에 포함하지 않습니다.
@@ -132,14 +134,15 @@ HTML·CSS·JavaScript로 구성된 정적 사이트이며, 익명 평가·대화
 Node.js가 설치된 환경에서 저장소 폴더 내에서 실행합니다.
 
 ```sh
-node test-timetable.cjs
-node test-everytime.cjs
-node test-discussion.cjs
-node test-academic-week.cjs
-node test-review-groups.cjs
-node test-review-reset.cjs
-node test-p1-security.cjs
-node test-current-term.cjs
+node tests/test-timetable.cjs
+node tests/test-everytime.cjs
+node tests/test-discussion.cjs
+node tests/test-academic-week.cjs
+node tests/test-review-groups.cjs
+node tests/test-review-reset.cjs
+node tests/test-p1-security.cjs
+node tests/test-current-term.cjs
+node tests/test-final-review.cjs
 ```
 
 화면 변경은 브라우저에서도 확인합니다. 서버의 권한·참여 조건 변경은 `backend/`의 관련 롤백 검증 SQL로 확인합니다.
@@ -165,3 +168,10 @@ node test-current-term.cjs
 - 최종평가는 일일 평가·주차별 기록과 별도 저장하며 토론방 참여 조건을 해제하지 않습니다. 최종평가가 없으면 일일 평점으로 대체하지 않습니다.
 
 - 내 시간표 과목 카드 상단에는 학기말 최종평가, 상세 버튼 아래에는 별도의 일일 평가 버튼을 표시합니다. 마지막 주차 일일 평가도 최종평가와 별도 저장됩니다. 수업 시간 추가·과목 빼기는 카드 대신 시간표 칸의 편집 창에서 관리합니다.
+
+### 저장소 정리 원칙
+
+- 운영 공유 경로는 Supabase만 사용합니다. 예전 GitHub Issue 게시·조회, 공유 팝업과 더 보기 코드는 제거했습니다. 서버 설정이 없으면 일일 평가를 외부 공개 소스에서 대신 불러오지 않습니다.
+- 루트에는 실제 배포 파일과 프로젝트 안내를 두고, 테스트는 tests/, 서버 변경 이력은 backend/migrations/, 서버 검증은 backend/tests/에 둡니다.
+- 과목 자료 22개 조각은 catalog.js 및 index.html에서 모두 사용하므로 유지합니다. review-reset.js는 오랫동안 접속하지 않은 브라우저의 기존 평가 초기화를 위한 호환 처리이므로 유지합니다.
+- 이전 SQL은 운영 기능의 최신 코드와 달라도 신규 서버 구성에 필요한 순차 변경 이력입니다. 삭제하거나 임의로 다시 실행하지 않습니다.
